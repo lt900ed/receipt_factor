@@ -1,1 +1,90 @@
-First Commit
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>レシート因子メーカー</title>
+  <meta property="og:title" content="レシート因子メーカー">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="レシート因子メーカー">
+  <meta property="og:description" content="ウマ娘の因子やスキル一覧のスクリーンショットを連結出来ます。">
+  <meta property="og:url" content="https://lt900ed.github.io/receipt_factor">
+  <meta property="og:image" content="https://lt900ed.github.io/receipt_factor/img/header.jpg">
+  <meta name="twitter:site" content="@lt900ed">
+  <meta name="twitter:card" content="photo">
+  <link rel="stylesheet" href="css/reset.css" type="text/css">
+  <link rel="stylesheet" href="css/common.css" type="text/css">
+  <link rel="stylesheet" href="css/base.css" type="text/css">
+  <link rel="stylesheet" href="css/editormd.css" type="text/css">
+  <link rel="stylesheet" href="css/detail.css" type="text/css">
+</head>
+<body class="body">
+  <header id="pageHeader">
+    <div class="logo">
+      <h1><a href="/wf_party_archives/">レシート因子メーカー</a></h1>
+    </div>
+  </header>
+  <div class="toolbar">
+    <div id="errMsg" class="message hidden"></div>
+    <div id="normalMsg" class="message hidden"></div>
+  </div>
+  <div id="eolMsg">
+    <article>
+    <p>
+      このサイトではウマ娘の因子やスキル一覧のスクリーンショットを連結することが出来ます。<br>
+      詳しくは<a href="https://twitter.com/WFPartyFinder/status/1643597201824964608" target="_blank" rel="noopener">ツイッター</a>をご確認下さい。
+    </p>
+    </article>
+  </div>
+  <div class="wrapper">
+    <article id="detail" data-party_id="advanced_soldier-1" data-party="1916">
+      <section id="top">
+        <form method="post" enctype="multipart/form-data">
+          <div id="dragDropArea">
+              <div class="drag-drop-inside">
+                  <p class="drag-drop-info">ここにファイルをドロップ</p>
+                  <p>または</p>
+                  <p class="drag-drop-buttons">
+                      <input id="fileInput" type="file" accept="image/*" multiple="multiple" value="ファイルを選択" name="photo" onChange="photoPreview(event)">
+                  </p>
+              </div>
+          </div>
+          <button type="submit" name="submit" value="登録">登録</button>
+          <div id="previewArea">
+            <div class="container">
+              <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="/img/ss/01501.png"></div>
+              <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="/img/ss/01502.png"></div>
+              <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="/img/ss/01801.png"></div>
+              <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="/img/ss/01802.png"></div>
+              <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="/img/ss/01803.png"></div>
+            </div>
+          </div>
+        </form>
+      </section>
+      <section id="overview">
+        <div class="overviewwrap">
+          <div class="attributewrap">
+          </div>
+          <div class="pfwrap">
+            テスト
+          </div>
+          <div class="datewrap">
+            テスト
+          </div>
+        </div>
+      </section>
+      <hr>
+    </article>
+  </div>
+  <footer>
+    <p class="resources">ご意見ご要望:
+      <a href="https://twitter.com/lt900ed" target="_blank" rel="noopener">@lt900ed</a>
+    </p>
+    <p class="resources"><a href="/wf_party_archives/">レシート因子メーカー Ver.1.0</a></p>
+  </footer>
+  <script src="/js/receipt_factor.js"></script>
+</body>
+</html>
