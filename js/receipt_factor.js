@@ -17,6 +17,16 @@ fileArea.addEventListener('drop', function(e){
     fileInput.files = files;
     photoPreview('onChange',files);
 });
+function resetCanvas() {
+  const canvas = document.getElementById("canvasOutput");
+  if (canvas.getContext) {
+      const context = canvas.getContext("2d");
+      context.font = '25px Roboto medium';
+      context.textAlign = 'left';
+      context.textBaseline = 'top';
+      context.fillText('ここに結果が表示されます', 0, 0);
+  }
+};
 function deletePhoto(e) {
   console.log(e.target);
   e.target.closest('.containerItem').remove();
@@ -96,12 +106,17 @@ function generatePhoto() {
     console.log('opencv is not ready.');
   } else {
     let imgElements = document.getElementsByClassName('previewImage');
-    let mat = cv.imread(imgElements[0]);
+    var l_mat = [];
+    for (i = 0; i < imgElements.length; i++) {
+      var tmpImgElement = document.createElement('img');
+      tmpImgElement.setAttribute('src', imgElements[i].getAttribute('src'));
+      l_mat.push(cv.imread(tmpImgElement));
+    };
+    console.log(l_mat.length, l_mat[0].rows, l_mat[0].cols);
     var dst = new cv.Mat();
-    cv.cvtColor(mat, dst, cv.COLOR_RGBA2GRAY, 0);
+    cv.cvtColor(l_mat[0], dst, cv.COLOR_RGBA2GRAY, 0);
     cv.imshow('canvasOutput', dst);
-    mat.delete();
-    dst.delete();
+
   }
 };
 function resetPhoto() {
@@ -118,3 +133,40 @@ function resetPhoto() {
 function onOpenCvReady() {
   manageBtnStatus('removeCvNotReady');
 };
+function GeneratedDownloadAnker(base64, name){
+  //アンカータグを生成しhrefへBase64文字列をセット
+  const a = document.createElement('a');
+  a.href = base64;
+
+  //ダウンロード時のファイル名を指定
+  a.download = name;
+
+  //クリックイベントを発生させる
+  a.click();
+};
+function SaveOriginal(canvas_src, ext){
+  //出力用canvas生成
+  const canvas_out = document.createElement('canvas');
+  const ctx_out = canvas_out.getContext('2d');
+
+  //入力canvasをそのまま出力用に書き込み
+  canvas_out.width = canvas_src.width;
+  canvas_out.height = canvas_src.height;
+  ctx_out.drawImage(canvas_src, 0, 0, canvas_src.width, canvas_src.height, 0, 0, canvas_out.width, canvas_out.height);
+
+  var date = new Date();
+  var str_dt = date.getFullYear() + ('0' + (date.getMonth() + 1)).slice(-2) + ('0' + date.getDate()).slice(-2) + ('0' + date.getHours()).slice(-2) + ('0' + date.getMinutes()).slice(-2) + ('0' + date.getSeconds()).slice(-2) + date.getMilliseconds();
+
+  //アンカータグ経由でダウンロード
+  switch (ext) {
+    case 'jpg':
+      GeneratedDownloadAnker(canvas_out.toDataURL('image/jpeg', 0.95), 'receipt_' + str_dt + '.jpg');
+      break;
+    case 'png':
+      GeneratedDownloadAnker(canvas_out.toDataURL('image/png'), 'receipt_' + str_dt + '.png');
+      break;
+    default:
+      GeneratedDownloadAnker(canvas_out.toDataURL('image/jpeg', 0.95), 'receipt_' + str_dt + '.jpg');
+  };
+};
+resetCanvas();

@@ -55,15 +55,19 @@
               <!-- <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="./img/ss/01803.png"></div> -->
             </div>
           </div>
-          <div id="buttonArea">
-            <button id="btnSubmit" class="btn disable cvNotReady imgNotReady" name="submit" value="作成" onclick="generatePhoto();return false;">　　作成　　</button>
+          <div class="buttonArea">
+            <button id="btnSubmit" class="btn disable cvNotReady imgNotReady" name="submit" value="作成" onclick="generatePhoto();return false;">作成</button>
             <button id="btnReset" class="btn disable weak" name="cancel" value="リセット" onclick="resetPhoto();return false;">リセット</button>
           </div>
         </form>
       </section>
       <section id="overview">
         <canvas id="canvasOutput"></canvas>
-      </section>
+        <div class="buttonArea">
+          <button id="btnSaveJPG" class="btn weak" name="cancel" value="JPGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'jpg');return false;">JPGで保存</button>
+          <button id="btnSavePNG" class="btn weak" name="cancel" value="PNGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'png');return false;">PNGで保存</button>
+        </div>
+    </section>
       <hr>
     </article>
   </div>

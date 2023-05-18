@@ -208,7 +208,7 @@ header{
   margin: .2rem;
 }
 .btn{
-  padding: .5rem 2rem;
+  padding: .5rem 1rem;
   margin: .2rem;
   font-weight: bold;
   color: #fff;
@@ -247,6 +247,9 @@ header{
 }
 .btn.disable a{
   color: #aaa;
+}
+#btnSubmit{
+  padding: .5rem 3rem;
 }
 .logo{
   text-align: center;
@@ -559,7 +562,7 @@ div.icon--twitter::after{
   margin: 5px;
   background-color: #ffffff8a;
 }
-#buttonArea{
+.buttonArea{
   text-align: center;
 }
 #overview{
