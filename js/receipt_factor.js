@@ -48,6 +48,29 @@ function addPhoto(e) {
   divContainerItem.appendChild(img);
   preview.appendChild(divContainerItem);
 };
+function manageBtnStatus(action) {
+  var btnSubmit = document.getElementById('btnSubmit');
+  var btnReset = document.getElementById('btnReset');
+  switch (action) {
+    case 'addImgNotReady':
+      btnSubmit.classList.add('imgNotReady');
+      btnSubmit.classList.add('disable');
+      btnReset.classList.add('imgNotReady');
+      btnReset.classList.add('disable');
+      break;
+    case 'removeImgNotReady':
+      btnSubmit.classList.remove('imgNotReady');
+      btnReset.classList.remove('imgNotReady');
+      btnReset.classList.remove('disable');
+      break;
+    case 'removeCvNotReady':
+      btnSubmit.classList.remove('cvNotReady');
+      break;
+  }
+  if (!btnSubmit.classList.contains('imgNotReady') && !btnSubmit.classList.contains('cvNotReady')) {
+    btnSubmit.classList.remove('disable');
+  }
+};
 function photoPreview(event, fs = null) {
   var files = fs;
   if(files === null){
@@ -60,13 +83,26 @@ function photoPreview(event, fs = null) {
       addPhoto(e);
       ++cnt_onload;
       if (cnt_onload == files.length){
-        document.getElementById('btnSubmit').classList.remove('imgNotReady');
-        document.getElementById('btnReset').classList.remove('imgNotReady');
-        document.getElementById('btnReset').classList.remove('disable');
+        manageBtnStatus('removeImgNotReady');
       };
     });
     reader.readAsDataURL(files[i]);
   };
+};
+function generatePhoto() {
+  if (document.getElementById('btnReset').classList.contains('imgNotReady')) {
+    console.log('img is not ready.');
+  } else if (document.getElementById('btnReset').classList.contains('cvNotReady')) {
+    console.log('opencv is not ready.');
+  } else {
+    let imgElements = document.getElementsByClassName('previewImage');
+    let mat = cv.imread(imgElements[0]);
+    var dst = new cv.Mat();
+    cv.cvtColor(mat, dst, cv.COLOR_RGBA2GRAY, 0);
+    cv.imshow('canvasOutput', dst);
+    mat.delete();
+    dst.delete();
+  }
 };
 function resetPhoto() {
   if (document.getElementById('btnReset').classList.contains('imgNotReady')) {
@@ -76,9 +112,9 @@ function resetPhoto() {
     while(preview.firstChild){
       preview.removeChild(preview.firstChild);
     }
-    document.getElementById('btnSubmit').classList.add('imgNotReady');
-    document.getElementById('btnSubmit').classList.add('disable');
-    document.getElementById('btnReset').classList.add('imgNotReady');
-    document.getElementById('btnReset').classList.add('disable');
+    manageBtnStatus('addImgNotReady');
   }
+};
+function onOpenCvReady() {
+  manageBtnStatus('removeCvNotReady');
 };
