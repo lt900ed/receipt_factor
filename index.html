@@ -18,8 +18,6 @@
   <link rel="stylesheet" href="./css/reset.css" type="text/css">
   <link rel="stylesheet" href="./css/common.css" type="text/css">
   <link rel="stylesheet" href="./css/base.css" type="text/css">
-  <link rel="stylesheet" href="./css/editormd.css" type="text/css">
-  <link rel="stylesheet" href="./css/detail.css" type="text/css">
 </head>
 <body class="body">
   <header id="pageHeader">
@@ -54,26 +52,17 @@
           </div>
           <div id="previewArea">
             <div class="container">
-              <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="./img/ss/01803.png"></div>
+              <!-- <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="./img/ss/01803.png"></div> -->
             </div>
           </div>
           <div id="buttonArea">
-            <button class="btn btn-primary" type="submit" name="submit" value="登録">登録</button>
-            <!-- <button class="btn btn-primary" type="submit" name="submit" value="登録">登録</button> -->
+            <button id="btnSubmit" class="btn disable cvNotReady imgNotReady" name="submit" value="作成">　　作成　　</button>
+            <button id="btnReset" class="btn disable weak" name="cancel" value="リセット" onclick="resetPhoto();return false;">リセット</button>
           </div>
         </form>
       </section>
       <section id="overview">
-        <div class="overviewwrap">
-          <div class="attributewrap">
-          </div>
-          <div class="pfwrap">
-            テスト
-          </div>
-          <div class="datewrap">
-            テスト
-          </div>
-        </div>
+        <canvas id="canvasOutput"></canvas>
       </section>
       <hr>
     </article>

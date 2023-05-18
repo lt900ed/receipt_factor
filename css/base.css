@@ -208,7 +208,7 @@ header{
   margin: .2rem;
 }
 .btn{
-  padding: .6rem 2rem;
+  padding: .5rem 2rem;
   margin: .2rem;
   font-weight: bold;
   color: #fff;
@@ -216,7 +216,7 @@ header{
   border: 1px solid #6a6aea;
   cursor: pointer;
   text-align: center;
-  font-size: 14px;
+  font-size: 16px;
   vertical-align: baseline;
   border-radius: .5rem;
 }
@@ -308,8 +308,8 @@ div.icon--useful.isUseful::after{
 }
 div.icon--cross::after{
   content:"";
-  height: 1rem;
-  width: 1rem;
+  height: 1.5rem;
+  width: 1.5rem;
   cursor: pointer;
   background-image: url("../img/sprites/cross/cross.svg");
   background-repeat: no-repeat;
