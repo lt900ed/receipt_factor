@@ -12,7 +12,7 @@ body{
     sans-serif;
   width: 100%;
   margin: 0;
-  background-image: url("/img/bg.gif");
+  background-image: url("../img/bg.gif");
   background-repeat: repeat;
   /*transition: padding 0.5s;*/
 }
@@ -208,7 +208,7 @@ header{
   margin: .2rem;
 }
 .btn{
-  padding: .6rem;
+  padding: .6rem 2rem;
   margin: .2rem;
   font-weight: bold;
   color: #fff;
@@ -218,6 +218,7 @@ header{
   text-align: center;
   font-size: 14px;
   vertical-align: baseline;
+  border-radius: .5rem;
 }
 .btn.weak{
   background-color: #fff;
@@ -296,21 +297,21 @@ div.icon--useful::after{
   height: 1rem;
   width: 1rem;
   cursor: pointer;
-  background-image: url("/img/sprites/usefuls/isnotUseful.svg");
+  background-image: url("../img/sprites/usefuls/isnotUseful.svg");
   background-repeat: no-repeat;
   display: inline-block;
   background-size: 100%;
   vertical-align: text-bottom;
 }
 div.icon--useful.isUseful::after{
-  background-image: url("/img/sprites/usefuls/isUseful.svg");
+  background-image: url("../img/sprites/usefuls/isUseful.svg");
 }
 div.icon--cross::after{
   content:"";
   height: 1rem;
   width: 1rem;
   cursor: pointer;
-  background-image: url("/img/sprites/cross/cross.svg");
+  background-image: url("../img/sprites/cross/cross.svg");
   background-repeat: no-repeat;
   display: inline-block;
   background-size: 100%;
@@ -338,19 +339,19 @@ div.icon--twitter::after{
   margin-top: .1rem;
 }
 div.icon--copy::after{
-  background-image: url("/img/sprites/various/copy.svg");
+  background-image: url("../img/sprites/various/copy.svg");
 }
 div.icon--edit::after{
-  background-image: url("/img/sprites/various/edit.svg");
+  background-image: url("../img/sprites/various/edit.svg");
 }
 div.icon--copyimg::after{
-  background-image: url("/img/sprites/various/copy_img.svg");
+  background-image: url("../img/sprites/various/copy_img.svg");
 }
 div.icon--copypartycode::after{
-  background-image: url("/img/sprites/various/copy_partycode.svg");
+  background-image: url("../img/sprites/various/copy_partycode.svg");
 }
 div.icon--twitter::after{
-  background-image: url("/img/sprites/various/twitter.svg");
+  background-image: url("../img/sprites/various/twitter.svg");
 }
 .imgUnit{
   height: 4rem;
@@ -557,4 +558,7 @@ div.icon--twitter::after{
   position: absolute;
   margin: 5px;
   background-color: #ffffff8a;
+}
+#buttonArea{
+  text-align: center;
 }
