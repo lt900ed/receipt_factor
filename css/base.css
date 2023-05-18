@@ -568,3 +568,6 @@ div.icon--twitter::after{
 #overview{
   text-align: center;
 }
+#overview p{
+  font-size: large;
+}
