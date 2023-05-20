@@ -42,6 +42,8 @@ const thres_header = 0.9;
 
 //パラメータ
 const force_one_group = false;
+const load_parts = ['scroll_with_header', 'scroll_full_width', 'scroll', 'bottom_row', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
+const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
 
 function vconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
   const w_min = Math.min(...im_list.map((d) => {return d.cols}));
@@ -56,6 +58,7 @@ function vconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
   };
   dst = new cv.Mat();
   cv.vconcat(im_list_resize, dst);
+  im_list_resize.delete();
   return dst;
 };
 function hconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
@@ -71,6 +74,7 @@ function hconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
   };
   dst = new cv.Mat();
   cv.hconcat(im_list_resize, dst);
+  im_list_resize.delete();
   return dst;
 }
 function cv2_resize_fixed_aspect(img, width = -1, height = -1) {
@@ -106,6 +110,11 @@ function calc_rects(rect_close, rect_prop) {
     }
   });
   return out;
+}
+function match_tmpl_min_max_loc(img_tgt, img_tmpl) {
+  let dst = new cv.Mat();
+  cv.matchTemplate(img_tgt, img_tmpl, dst, cv.TM_CCOEFF_NORMED);
+  return cv.minMaxLoc(dst);
 }
 
 function detect_rects(img_in) {
@@ -182,7 +191,7 @@ function detect_rects(img_in) {
   if (y_start + Math.floor(rect_whole.whole.height / 10) > img_in.rows) {
     throw new Error('閉じるボタンが正しく検出出来ない画像があります。');
   }
-  let img_find_header = img_in.roi(new cv.Rect(0, y_start, img_in.cols, Math.floor(rect_whole.whole.height / 10)));
+  let img_find_header = img_in.clone().roi(new cv.Rect(0, y_start, img_in.cols, Math.floor(rect_whole.whole.height / 10)));
   cv.cvtColor(img_find_header, img_find_header, cv.COLOR_RGB2HSV, 0);
   let green = new cv.Mat()
   // ヘッダー辺りで緑っぽいピクセルを抽出
@@ -240,24 +249,109 @@ function detect_rects(img_in) {
   // document.getElementById('overview').appendChild(tmpCanvasElement);
   // cv.imshow('canvasOutput', dst);
 
+  // メモリ解放
+  img_gray.delete();
+  mv_contours.delete();
+  hierarchy.delete();
+  mv_contours_only_large.delete();
+  tmpl_gray.delete();
+  mv_tmpl_contours.delete();
+  tmpl_hierarchy.delete();
+  img_find_header.delete();
+  green.delete();
+  cont_out.forEach(function(c){c.delete()});
+  l_tmpl_contours_only_large.forEach(function(c){c.delete()});
   return rects;
 }
 
 function generateReceipt(l_mat) {
+  const n_tgt = l_mat.length;
   console.log(l_mat.length, l_mat[0].rows, l_mat[0].cols);
   let l_rects = [];
   let tmp_rects = {};
   for (let i = 0; i < l_mat.length; i++) {
+    // 画像毎に閉じるボタンの検出と枠座標取得
     tmp_rects = detect_rects(l_mat[i]);
-    if (typeof tmp_rects === 'undefined') {
-      return
-    }
     l_rects.push(tmp_rects);
-    cv.cvtColor(l_mat[i], l_mat[i], cv.COLOR_RGBA2RGB, 0);
-    cv2_rectangle(l_mat[i], l_rects[i].whole, new cv.Scalar(255, 0, 0), 10);
+    // cv2_rectangle(l_mat[i], l_rects[i].whole, new cv.Scalar(255, 0, 0), 10);
   }
-  var dst = new cv.Mat();
-  dst = hconcat_resize_min(l_mat);
+  // パーツ毎の最小サイズを算出
+  let tgt_sizes = {};
+  load_parts.forEach(function(p){
+    let tmp_w = Math.min(...l_rects.map((d) => {return d[p].width}));
+    let tmp_h = Math.min(...l_rects.map((d) => {return d[p].height}));
+    tgt_sizes[p] = {'width': tmp_w, 'height': tmp_h};
+  });
+
+  // 最小サイズに合わせて全パーツを切り出し
+  let imgs = []
+  l_mat.forEach(function(m, i){
+    let obj_tmp = {};
+    load_parts.forEach(function(p){
+      let tmp_mat = new cv.Mat();
+      let tmp_dst = new cv.Mat();
+      tmp_mat = m.clone().roi(l_rects[i][p]);
+      cv.resize(tmp_mat, tmp_dst, tgt_sizes[p]);
+      obj_tmp[p] = tmp_dst.clone();
+      tmp_mat.delete();
+      tmp_dst.delete();
+    });
+    imgs.push(obj_tmp);
+  });
+
+  // グループ決め
+  let l_group = [];
+  if (force_one_group) {
+    // 強制的に全画像同じグループ扱い
+    l_group = Array(n_tgt).fill(0);
+  } else {
+    // グループ番号をnullで初期化
+    l_group = Array(n_tgt).fill(null);
+    // 各画像の組み合わせ毎の一致度を格納する二次元配列宣言
+    // 似てないと1、似てると0なので1.0で初期化
+    let arr_val = new Array(n_tgt);
+    for(let y = 0; y < n_tgt; y++) {
+      arr_val[y] = new Array(n_tgt).fill(1.0);
+    }
+
+    // アイコン等からグループ決め
+    // 全組み合わせでテンプレートマッチ
+    imgs.forEach(function(img_tmpl, i){
+      imgs.forEach(function(img_tgt, j){
+        // 同じ組み合わせで二回チェックしないようjの方が大きいときだけチェック
+        if (i < j) {
+          tgt_parts_for_group.forEach(function(p){
+            let res = match_tmpl_min_max_loc(img_tgt[p], img_tmpl[p].clone().roi(new cv.Rect(0, 0, img_tmpl[p].cols - 1, img_tmpl[p].rows - 1)));
+            // パーツ毎の結果を乗算、全部似てればほぼ1のまま、どれかでも違うと一気に0に近づく
+            arr_val[Math.min(i, j)][Math.max(i, j)] *= res.maxVal
+          });
+        }
+      })
+    })
+    let current_group = -1;
+    [...Array(n_tgt).keys()].forEach(function(i){
+      if (l_group[i] == null) {
+        current_group += 1;
+        l_group[i] = current_group;
+        for (let j = i + 1; j < n_tgt; j++) {
+          if (l_group[j] == null && arr_val[i][j] > thres_match_tmpl_basic_info) {
+            l_group[j] = current_group;
+          }
+        }
+      }
+    })
+  };
+  console.log(l_group);
+
+  let dst = new cv.Mat();
+  // dst = hconcat_resize_min(l_mat);
+  dst = hconcat_resize_min(imgs.map((d) => {return d.scroll_with_header}));
   dst = cv2_resize_fixed_aspect(dst, -1, 300);
+  // メモリ解放
+  imgs.forEach(function(i){
+    load_parts.forEach(function(p){
+      i[p].delete()
+    })
+  });
   return dst;
 }

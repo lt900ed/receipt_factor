@@ -1,12 +1,20 @@
 function raiseErrMsg(t) {
-  document.getElementById('errMsg').textContent = t;
+  let text = 'エラーが発生しました。ページを再読み込みして下さい。';
+  if (!typeof t === 'undefined') {
+    text = t;
+  };
+  document.getElementById('errMsg').textContent = text;
   document.getElementById('errMsg').classList.remove('hidden');
-  setTimeout(function(){document.getElementById('errMsg').classList.add('hidden');}, Math.max(t.length * 120, 5000));
+  setTimeout(function(){document.getElementById('errMsg').classList.add('hidden');}, Math.max(text.length * 120, 5000));
 };
 function raiseNormalMsg(t) {
-  document.getElementById('normalMsg').textContent = t;
+  let text = '';
+  if (!typeof t === 'undefined') {
+    text = t;
+  };
+  document.getElementById('normalMsg').textContent = text;
   document.getElementById('normalMsg').classList.remove('hidden');
-  setTimeout(function(){document.getElementById('normalMsg').classList.add('hidden');}, Math.max(t.length * 120, 5000));
+  setTimeout(function(){document.getElementById('normalMsg').classList.add('hidden');}, Math.max(text.length * 120, 5000));
 };
 function resetCanvas() {
   const canvas = document.getElementById("canvasOutput");
@@ -19,7 +27,6 @@ function resetCanvas() {
   }
 };
 function deletePhoto(e) {
-  console.log(e.target);
   e.target.closest('.containerItem').remove();
   if (document.getElementsByClassName('containerItem').length == 0) {
     manageBtnStatus('addImgNotReady');
@@ -90,7 +97,9 @@ function photoPreview(event, fs = null) {
   };
 };
 function generatePhoto() {
-  // try {
+  try {
+    // なんか長辺が2175pxより大きいとMatchShapesでエラーになるので予め小さくしとく
+    const limit_px = 2175;
     if (document.getElementById('btnSubmit').classList.contains('imgNotReady')) {
       throw new Error('画像が読み込まれていません。');
     } else if (document.getElementById('btnSubmit').classList.contains('cvNotReady')) {
@@ -103,12 +112,15 @@ function generatePhoto() {
       let tmpImgElement = document.createElement('img');
       tmpImgElement.setAttribute('src', imgElements[i].getAttribute('src'));
       let tmpImg = cv.imread(tmpImgElement);
-      if (tmpImg.rows > 2175) {
-        tmpImg = cv2_resize_fixed_aspect(tmpImg, -1, 2175);
-      } else if (tmpImg.cols > 2175) {
-        tmpImg = cv2_resize_fixed_aspect(tmpImg, 2175, -1);
+      cv.cvtColor(tmpImg, tmpImg, cv.COLOR_RGBA2RGB, 0);
+      // なんか長辺が2175pxより大きいとMatchShapesでエラーになるので予め小さくしとく
+      if (tmpImg.rows > limit_px) {
+        tmpImg = cv2_resize_fixed_aspect(tmpImg, -1, limit_px);
+      } else if (tmpImg.cols > limit_px) {
+        tmpImg = cv2_resize_fixed_aspect(tmpImg, limit_px, -1);
       }
-      l_mat.push(tmpImg);
+      l_mat.push(tmpImg.clone());
+      tmpImg.delete();
     };
     // メイン加工関数呼び出し
     dst = generateReceipt(l_mat);
@@ -125,10 +137,13 @@ function generatePhoto() {
       document.getElementById('SaveBtnArea').classList.remove('hidden');
       document.querySelector('#overview > p').classList.add('hidden');
       document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
+      // メモリ解放
+      l_mat.forEach(function(m){m.delete();});
+      dst.delete();
     }
-  // } catch(e) {
-  //   raiseErrMsg(e.message);
-  // }
+  } catch(e) {
+    raiseErrMsg(e.message);
+  }
 };
 function resetPhoto() {
   try {
