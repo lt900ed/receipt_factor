@@ -113,8 +113,11 @@ function calc_rects(rect_close, rect_prop) {
 }
 function match_tmpl_min_max_loc(img_tgt, img_tmpl) {
   let dst = new cv.Mat();
+  let out = null;
   cv.matchTemplate(img_tgt, img_tmpl, dst, cv.TM_CCOEFF_NORMED);
-  return cv.minMaxLoc(dst);
+  out = cv.minMaxLoc(dst);
+  dst.delete();
+  return out;
 }
 
 function detect_rects(img_in) {
@@ -191,7 +194,7 @@ function detect_rects(img_in) {
   if (y_start + Math.floor(rect_whole.whole.height / 10) > img_in.rows) {
     throw new Error('閉じるボタンが正しく検出出来ない画像があります。');
   }
-  let img_find_header = img_in.clone().roi(new cv.Rect(0, y_start, img_in.cols, Math.floor(rect_whole.whole.height / 10)));
+  let img_find_header = img_in.roi(new cv.Rect(0, y_start, img_in.cols, Math.floor(rect_whole.whole.height / 10))).clone();
   cv.cvtColor(img_find_header, img_find_header, cv.COLOR_RGB2HSV, 0);
   let green = new cv.Mat()
   // ヘッダー辺りで緑っぽいピクセルを抽出
@@ -284,13 +287,13 @@ function generateReceipt(l_mat) {
   });
 
   // 最小サイズに合わせて全パーツを切り出し
-  let imgs = []
+  let imgs = [];
   l_mat.forEach(function(m, i){
     let obj_tmp = {};
     load_parts.forEach(function(p){
       let tmp_mat = new cv.Mat();
       let tmp_dst = new cv.Mat();
-      tmp_mat = m.clone().roi(l_rects[i][p]);
+      tmp_mat = m.roi(l_rects[i][p]).clone();
       cv.resize(tmp_mat, tmp_dst, tgt_sizes[p]);
       obj_tmp[p] = tmp_dst.clone();
       tmp_mat.delete();
@@ -321,7 +324,7 @@ function generateReceipt(l_mat) {
         // 同じ組み合わせで二回チェックしないようjの方が大きいときだけチェック
         if (i < j) {
           tgt_parts_for_group.forEach(function(p){
-            let res = match_tmpl_min_max_loc(img_tgt[p], img_tmpl[p].clone().roi(new cv.Rect(0, 0, img_tmpl[p].cols - 1, img_tmpl[p].rows - 1)));
+            let res = match_tmpl_min_max_loc(img_tgt[p], img_tmpl[p].roi(new cv.Rect(0, 0, img_tmpl[p].cols - 1, img_tmpl[p].rows - 1)).clone());
             // パーツ毎の結果を乗算、全部似てればほぼ1のまま、どれかでも違うと一気に0に近づく
             arr_val[Math.min(i, j)][Math.max(i, j)] *= res.maxVal
           });
@@ -346,7 +349,7 @@ function generateReceipt(l_mat) {
   let dst = new cv.Mat();
   // dst = hconcat_resize_min(l_mat);
   dst = hconcat_resize_min(imgs.map((d) => {return d.scroll_with_header}));
-  dst = cv2_resize_fixed_aspect(dst, -1, 300);
+  // dst = cv2_resize_fixed_aspect(dst, -1, 300);
   // メモリ解放
   imgs.forEach(function(i){
     load_parts.forEach(function(p){
