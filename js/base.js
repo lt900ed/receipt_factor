@@ -1,22 +1,13 @@
-var fileArea = document.getElementById('dragDropArea');
-var fileInput = document.getElementById('fileInput');
-fileArea.addEventListener('dragover', function(e){
-  e.preventDefault();
-  fileArea.classList.add('dragover');
-});
-fileArea.addEventListener('dragleave', function(e){
-    e.preventDefault();
-    fileArea.classList.remove('dragover');
-});
-fileArea.addEventListener('drop', function(e){
-    e.preventDefault();
-    fileArea.classList.remove('dragenter');
-    var files = e.dataTransfer.files;
-    console.log('DRAG & DROP');
-    console.table(files);
-    fileInput.files = files;
-    photoPreview('onChange',files);
-});
+function raiseErrMsg(t) {
+  document.getElementById('errMsg').textContent = t;
+  document.getElementById('errMsg').classList.remove('hidden');
+  setTimeout(function(){document.getElementById('errMsg').classList.add('hidden');}, Math.max(t.length * 120, 5000));
+};
+function raiseNormalMsg(t) {
+  document.getElementById('normalMsg').textContent = t;
+  document.getElementById('normalMsg').classList.remove('hidden');
+  setTimeout(function(){document.getElementById('normalMsg').classList.add('hidden');}, Math.max(t.length * 120, 5000));
+};
 function resetCanvas() {
   const canvas = document.getElementById("canvasOutput");
   if (canvas.getContext) {
@@ -33,7 +24,7 @@ function deletePhoto(e) {
   if (document.getElementsByClassName('containerItem').length == 0) {
     manageBtnStatus('addImgNotReady');
   }
-}
+};
 function addPhoto(e) {
   var preview = document.getElementsByClassName('container')[0];
   // preview.innerHTML += '<div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="' + e.target.result + '"></div>';
@@ -100,46 +91,48 @@ function photoPreview(event, fs = null) {
 };
 function generatePhoto() {
   if (document.getElementById('btnSubmit').classList.contains('imgNotReady')) {
-    console.log('img is not ready.');
+    raiseErrMsg('画像が読み込まれていません。');
+    return;
   } else if (document.getElementById('btnSubmit').classList.contains('cvNotReady')) {
-    console.log('opencv is not ready.');
-  } else {
-    if (!document.getElementById('canvasOutput')) {
-      // キャンバスがなかったら生成
-      let tmpCanvasElement = document.createElement('canvas');
-      tmpCanvasElement.setAttribute('id', 'canvasOutput');
-      document.getElementById('overview').appendChild(tmpCanvasElement);
-    }
-
-    // 入力画像群を隠し要素経由にして等倍で読み込み
-    let imgElements = document.getElementsByClassName('previewImage');
-    var l_mat = [];
-    for (i = 0; i < imgElements.length; i++) {
-      var tmpImgElement = document.createElement('img');
-      tmpImgElement.setAttribute('src', imgElements[i].getAttribute('src'));
-      l_mat.push(cv.imread(tmpImgElement));
-    };
-    dst = generateReceipt(l_mat);
-    cv.imshow('canvasOutput', dst);
-    document.getElementById('SaveBtnArea').classList.remove('hidden');
-    document.querySelector('#overview > p').classList.add('hidden');
-
-    document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
+    raiseErrMsg('加工ライブラリの読み込みが完了していません。');
+    return;
   }
+
+  if (!document.getElementById('canvasOutput')) {
+    // キャンバスがなかったら生成
+    let tmpCanvasElement = document.createElement('canvas');
+    tmpCanvasElement.setAttribute('id', 'canvasOutput');
+    document.getElementById('overview').appendChild(tmpCanvasElement);
+  }
+  // 入力画像群を隠し要素経由にして等倍で読み込み
+  let imgElements = document.getElementsByClassName('previewImage');
+  var l_mat = [];
+  for (i = 0; i < imgElements.length; i++) {
+    var tmpImgElement = document.createElement('img');
+    tmpImgElement.setAttribute('src', imgElements[i].getAttribute('src'));
+    l_mat.push(cv.imread(tmpImgElement));
+  };
+  // メイン加工関数呼び出し
+  dst = generateReceipt(l_mat);
+  cv.imshow('canvasOutput', dst);
+  document.getElementById('SaveBtnArea').classList.remove('hidden');
+  document.querySelector('#overview > p').classList.add('hidden');
+
+  document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
 };
 function resetPhoto() {
   if (document.getElementById('btnReset').classList.contains('imgNotReady') && !document.getElementById('canvasOutput')) {
-    console.log('img is not ready.');
-  } else {
-    var preview = document.getElementsByClassName('container')[0];
-    while(preview.firstChild){
-      preview.removeChild(preview.firstChild);
-    }
-    document.getElementById('overview').removeChild(document.getElementById('canvasOutput'));
-    document.getElementById('SaveBtnArea').classList.add('hidden');
-    document.querySelector('#overview > p').classList.remove('hidden');
-    manageBtnStatus('addImgNotReady');
+    raiseErrMsg('画像が読み込まれていません。');
+    return;
   }
+  var preview = document.getElementsByClassName('container')[0];
+  while(preview.firstChild){
+    preview.removeChild(preview.firstChild);
+  }
+  document.getElementById('overview').removeChild(document.getElementById('canvasOutput'));
+  document.getElementById('SaveBtnArea').classList.add('hidden');
+  document.querySelector('#overview > p').classList.remove('hidden');
+  manageBtnStatus('addImgNotReady');
 };
 function onOpenCvReady() {
   manageBtnStatus('removeCvNotReady');
@@ -179,4 +172,23 @@ function SaveOriginal(canvas_src, ext){
     default:
       GeneratedDownloadAnker(canvas_out.toDataURL('image/jpeg', 0.95), 'receipt_' + str_dt + '.jpg');
   };
+};
+window.onload = function () {
+  let fileArea = document.getElementById('dragDropArea');
+  let fileInput = document.getElementById('fileInput');
+  fileArea.addEventListener('dragover', function(e){
+    e.preventDefault();
+    fileArea.classList.add('dragover');
+  });
+  fileArea.addEventListener('dragleave', function(e){
+      e.preventDefault();
+      fileArea.classList.remove('dragover');
+  });
+  fileArea.addEventListener('drop', function(e){
+      e.preventDefault();
+      fileArea.classList.remove('dragenter');
+      let files = e.dataTransfer.files;
+      fileInput.files = files;
+      photoPreview('onChange',files);
+  });
 };

@@ -239,18 +239,5 @@ function generateReceipt(l_mat) {
   var dst = new cv.Mat();
   dst = hconcat_resize_min(l_mat);
   dst = cv2_resize_fixed_aspect(dst, -1, 300);
-
-  // var dst = new cv.Mat();
-  // var res = [];
-  // for (let i = 0; i < l_mat.length; i++) {
-  //   res = detect_rects(l_mat[i], rect_prop, path_tmpl_close, thres_gray, thres_cont_close, thres_header)
-  // };
-
-
-
-
-
-
-
   return dst;
 }
