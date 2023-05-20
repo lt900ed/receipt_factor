@@ -34,7 +34,7 @@ rect_prop['int_val'] = [rect_prop['guts_val'][0] + x_params, rect_prop['speed_va
 
 // しきい値
 const thres_gray = 240;
-const thres_cont_close = 0.8;
+const thres_cont_close = 0.1;
 const thres_match_tmpl = 0.92;
 const thres_match_tmpl_basic_info = 0.85;
 const thres_match_tmpl_higher = 0.5;
@@ -42,7 +42,6 @@ const thres_header = 0.9;
 
 //パラメータ
 const force_one_group = false;
-const ele_tmpl_close = document.getElementById('tmplClose')
 
 function vconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
   const w_min = Math.min(...im_list.map((d) => {return d.cols}));
@@ -76,7 +75,7 @@ function hconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
 }
 function cv2_resize_fixed_aspect(img, width = -1, height = -1) {
   if (typeof img === 'undefined' || (width == -1 && height == -1)) {
-    return void 0;
+    return;
   } else {
     let dst = new cv.Mat();
     let dsize = new cv.Size();
@@ -127,8 +126,11 @@ function detect_rects(img_in) {
       mv_contours_only_large.push_back(mv_contours.get(i));
     }
   };
+  if (mv_contours_only_large.size() == 0) {
+    throw new Error('閉じるボタンが検出出来ない画像があります。');
+  };
   // 閉じるボタンテンプレ読み込み
-  let tmpl_gray = cv.imread(ele_tmpl_close);
+  let tmpl_gray = cv.imread(document.getElementById('tmplClose'));
   cv.cvtColor(tmpl_gray, tmpl_gray, cv.COLOR_RGBA2GRAY, 0);
   cv.GaussianBlur(tmpl_gray, tmpl_gray, ksize, 0, 0, cv.BORDER_DEFAULT);
   cv.threshold(tmpl_gray, tmpl_gray, thres_gray, 255, cv.THRESH_BINARY);
@@ -166,6 +168,9 @@ function detect_rects(img_in) {
       min_is_close_val = is_close_val;
     }
   };
+  if (cont_out.length == 0) {
+    throw new Error('閉じるボタンが正常に検出出来ない画像があります。');
+  };
   let rect_close = cv.boundingRect(cont_out[0]);
   // 一度wholeの枠座標を計算
   let rect_whole = calc_rects(rect_close, {'whole': rect_prop.whole, 'close': rect_prop.close});
@@ -173,7 +178,10 @@ function detect_rects(img_in) {
   // console.log(rect_whole);
 
   // ヘッダー部分がどのyから始まってるか調査
-  let y_start = Math.max(0, Math.floor(rect_whole.whole.y - rect_whole.whole.height / 20))
+  let y_start = Math.max(0, Math.floor(rect_whole.whole.y - rect_whole.whole.height / 20));
+  if (y_start + Math.floor(rect_whole.whole.height / 10) > img_in.rows) {
+    throw new Error('閉じるボタンが正しく検出出来ない画像があります。');
+  }
   let img_find_header = img_in.roi(new cv.Rect(0, y_start, img_in.cols, Math.floor(rect_whole.whole.height / 10)));
   cv.cvtColor(img_find_header, img_find_header, cv.COLOR_RGB2HSV, 0);
   let green = new cv.Mat()
@@ -209,6 +217,13 @@ function detect_rects(img_in) {
   };
   // 枠座標を再計算
   rects = calc_rects(rect_close, rect_prop);
+  if (!(
+      0 <= rects.whole.x &&
+      0 <= rects.whole.y &&
+      rects.whole.x + rects.whole.width < img_in.cols &&
+      rects.whole.y + rects.whole.height < img_in.rows)) {
+    throw new Error('ウマ娘詳細エリアが正しく検出出来ない画像があります。');
+  }
 
   // 輪郭描画
   // let dst = cv.Mat.zeros(img_gray.rows, img_gray.cols, cv.CV_8UC3);
@@ -231,8 +246,13 @@ function detect_rects(img_in) {
 function generateReceipt(l_mat) {
   console.log(l_mat.length, l_mat[0].rows, l_mat[0].cols);
   let l_rects = [];
+  let tmp_rects = {};
   for (let i = 0; i < l_mat.length; i++) {
-    l_rects.push(detect_rects(l_mat[i]));
+    tmp_rects = detect_rects(l_mat[i]);
+    if (typeof tmp_rects === 'undefined') {
+      return
+    }
+    l_rects.push(tmp_rects);
     cv.cvtColor(l_mat[i], l_mat[i], cv.COLOR_RGBA2RGB, 0);
     cv2_rectangle(l_mat[i], l_rects[i].whole, new cv.Scalar(255, 0, 0), 10);
   }

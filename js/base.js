@@ -90,49 +90,64 @@ function photoPreview(event, fs = null) {
   };
 };
 function generatePhoto() {
-  if (document.getElementById('btnSubmit').classList.contains('imgNotReady')) {
-    raiseErrMsg('画像が読み込まれていません。');
-    return;
-  } else if (document.getElementById('btnSubmit').classList.contains('cvNotReady')) {
-    raiseErrMsg('加工ライブラリの読み込みが完了していません。');
-    return;
-  }
-
-  if (!document.getElementById('canvasOutput')) {
-    // キャンバスがなかったら生成
-    let tmpCanvasElement = document.createElement('canvas');
-    tmpCanvasElement.setAttribute('id', 'canvasOutput');
-    document.getElementById('overview').appendChild(tmpCanvasElement);
-  }
-  // 入力画像群を隠し要素経由にして等倍で読み込み
-  let imgElements = document.getElementsByClassName('previewImage');
-  var l_mat = [];
-  for (i = 0; i < imgElements.length; i++) {
-    var tmpImgElement = document.createElement('img');
-    tmpImgElement.setAttribute('src', imgElements[i].getAttribute('src'));
-    l_mat.push(cv.imread(tmpImgElement));
-  };
-  // メイン加工関数呼び出し
-  dst = generateReceipt(l_mat);
-  cv.imshow('canvasOutput', dst);
-  document.getElementById('SaveBtnArea').classList.remove('hidden');
-  document.querySelector('#overview > p').classList.add('hidden');
-
-  document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
+  // try {
+    if (document.getElementById('btnSubmit').classList.contains('imgNotReady')) {
+      throw new Error('画像が読み込まれていません。');
+    } else if (document.getElementById('btnSubmit').classList.contains('cvNotReady')) {
+      throw new Error('ライブラリの読み込みが完了していません。');
+    }
+    // 入力画像群を隠し要素経由にして等倍で読み込み
+    let imgElements = document.getElementsByClassName('previewImage');
+    let l_mat = [];
+    for (i = 0; i < imgElements.length; i++) {
+      let tmpImgElement = document.createElement('img');
+      tmpImgElement.setAttribute('src', imgElements[i].getAttribute('src'));
+      let tmpImg = cv.imread(tmpImgElement);
+      if (tmpImg.rows > 2175) {
+        tmpImg = cv2_resize_fixed_aspect(tmpImg, -1, 2175);
+      } else if (tmpImg.cols > 2175) {
+        tmpImg = cv2_resize_fixed_aspect(tmpImg, 2175, -1);
+      }
+      l_mat.push(tmpImg);
+    };
+    // メイン加工関数呼び出し
+    dst = generateReceipt(l_mat);
+    if (!(typeof dst === "undefined")) {
+      // 画像出力
+      if (!document.getElementById('canvasOutput')) {
+        // キャンバスがなかったら生成
+        let tmpCanvasElement = document.createElement('canvas');
+        tmpCanvasElement.setAttribute('id', 'canvasOutput');
+        document.getElementById('overview').appendChild(tmpCanvasElement);
+      }
+      cv.imshow('canvasOutput', dst);
+      // 保存ボタンを出してスクロール
+      document.getElementById('SaveBtnArea').classList.remove('hidden');
+      document.querySelector('#overview > p').classList.add('hidden');
+      document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
+    }
+  // } catch(e) {
+  //   raiseErrMsg(e.message);
+  // }
 };
 function resetPhoto() {
-  if (document.getElementById('btnReset').classList.contains('imgNotReady') && !document.getElementById('canvasOutput')) {
-    raiseErrMsg('画像が読み込まれていません。');
-    return;
+  try {
+    if (document.getElementById('btnReset').classList.contains('imgNotReady') && !document.getElementById('canvasOutput')) {
+      throw new Error('画像が読み込まれていません。');
+    }
+    let preview = document.getElementsByClassName('container')[0];
+    while(preview.firstChild){
+      preview.removeChild(preview.firstChild);
+    }
+    if (document.getElementById('canvasOutput')) {
+      document.getElementById('overview').removeChild(document.getElementById('canvasOutput'));
+    }
+    document.getElementById('SaveBtnArea').classList.add('hidden');
+    document.querySelector('#overview > p').classList.remove('hidden');
+    manageBtnStatus('addImgNotReady');
+  } catch(e) {
+    raiseErrMsg(e.message);
   }
-  var preview = document.getElementsByClassName('container')[0];
-  while(preview.firstChild){
-    preview.removeChild(preview.firstChild);
-  }
-  document.getElementById('overview').removeChild(document.getElementById('canvasOutput'));
-  document.getElementById('SaveBtnArea').classList.add('hidden');
-  document.querySelector('#overview > p').classList.remove('hidden');
-  manageBtnStatus('addImgNotReady');
 };
 function onOpenCvReady() {
   manageBtnStatus('removeCvNotReady');
@@ -158,8 +173,8 @@ function SaveOriginal(canvas_src, ext){
   canvas_out.height = canvas_src.height;
   ctx_out.drawImage(canvas_src, 0, 0, canvas_src.width, canvas_src.height, 0, 0, canvas_out.width, canvas_out.height);
 
-  var date = new Date();
-  var str_dt = date.getFullYear() + ('0' + (date.getMonth() + 1)).slice(-2) + ('0' + date.getDate()).slice(-2) + ('0' + date.getHours()).slice(-2) + ('0' + date.getMinutes()).slice(-2) + ('0' + date.getSeconds()).slice(-2) + date.getMilliseconds();
+  let date = new Date();
+  let str_dt = date.getFullYear() + ('0' + (date.getMonth() + 1)).slice(-2) + ('0' + date.getDate()).slice(-2) + ('0' + date.getHours()).slice(-2) + ('0' + date.getMinutes()).slice(-2) + ('0' + date.getSeconds()).slice(-2) + date.getMilliseconds();
 
   //アンカータグ経由でダウンロード
   switch (ext) {

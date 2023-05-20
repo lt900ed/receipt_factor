@@ -52,13 +52,12 @@
           </div>
           <div id="previewArea">
             <div class="container">
-              <img id="tmplClose" class="hidden" src="./img/tmpl_close.png">
               <!-- <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="./img/ss/01803.png"></div> -->
             </div>
           </div>
           <div class="buttonArea">
             <button id="btnSubmit" type="button" class="btn disable cvNotReady imgNotReady" name="submit" value="作成" onclick="generatePhoto();return false;">作成</button>
-            <button id="btnReset" type="button" class="btn disable weak" name="cancel" value="リセット" onclick="resetPhoto();return false;">リセット</button>
+            <button id="btnReset" type="button" class="btn disable weak imgNotReady" name="cancel" value="リセット" onclick="resetPhoto();return false;">リセット</button>
           </div>
         </form>
       </section>
@@ -82,5 +81,6 @@
   <script src="./js/receipt_factor.js"></script>
   <script src="./js/base.js"></script>
   <script async src="./js/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
+  <img id="tmplClose" class="hidden" src="./img/tmpl_close.png">
 </body>
 </html>
