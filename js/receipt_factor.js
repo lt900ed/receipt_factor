@@ -345,7 +345,6 @@ function generateReceipt(l_mat) {
       }
     })
   };
-  console.log(l_group);
 
   // グループ内でテンプレートマッチ
   // 結果格納用配列初期化
@@ -391,6 +390,52 @@ function generateReceipt(l_mat) {
   // arr_val.forEach(function(r){console.log(r)});
   // arr_loc.forEach(function(r){console.log(r)});
 
+  // 各グループの先頭画像からの相対距離を算出
+  let relative_height = new Array(n_tgt).fill(null);
+  relative_height[0] = 0;
+  let l_isfinished = new Array(n_tgt).fill(false);
+  let n_finished_before = -1;
+  let n_finished = 0;
+  // グループ毎に処理
+  [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
+    let is_group_initialized = false;
+    while (true) {
+      n_finished_before = n_finished;
+      [...Array(n_tgt).keys()].forEach(function(y){
+        // 今のグループだけ処理
+        if (l_group[y] == current_group) {
+          // 各グループ先頭の画像を基準とする
+          if (!is_group_initialized) {
+            relative_height[y] = 0;
+            is_group_initialized = true;
+          }
+          // 相対座標が決まってたら、まだ決まってない他の画像に波及開始
+          if (!l_isfinished[y] && relative_height[y] != null) {
+            [...Array(n_tgt).keys()].forEach(function(i){
+              [...Array(n_tgt).keys()].forEach(function(j){
+                if (arr_loc[i][j] != 0 && l_group[i] == current_group && l_group[j] == current_group) {
+                  if (i < y && j == y && relative_height[i] == null) {
+                    relative_height[i] = relative_height[y] - arr_loc[i][j]
+                  } else if (i == y && j > y && relative_height[j] == null) {
+                    relative_height[j] = relative_height[y] + arr_loc[i][j]
+                  }
+                }
+              })
+            })
+            l_isfinished[y] = true
+          }
+        }
+      })
+      // 全部チェックし終えたか更新出来なくなったら終了
+      n_finished = l_isfinished.filter((d) => d).length;
+      if (n_finished == n_tgt || n_finished_before == n_finished) {
+        break;
+      }
+    }
+  })
+  console.log(relative_height);
+  console.log(l_isfinished);
+  console.log(l_group);
 
   let dst = new cv.Mat();
   // dst = hconcat_resize_min(l_mat);
