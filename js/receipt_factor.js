@@ -270,252 +270,259 @@ function detect_rects(img_in) {
 }
 
 function generateReceipt(l_mat) {
-  const n_tgt = l_mat.length;
-  console.log(l_mat.length, l_mat[0].rows, l_mat[0].cols);
-  let l_rects = [];
-  let tmp_rects = {};
-  for (let i = 0; i < l_mat.length; i++) {
-    // 画像毎に閉じるボタンの検出と枠座標取得
-    tmp_rects = detect_rects(l_mat[i]);
-    l_rects.push(tmp_rects);
-    // cv2_rectangle(l_mat[i], l_rects[i].whole, new cv.Scalar(255, 0, 0), 10);
-  }
-  // パーツ毎の最小サイズを算出
-  let tgt_sizes = {};
-  load_parts.forEach(function(p){
-    let tmp_w = Math.min(...l_rects.map((d) => {return d[p].width}));
-    let tmp_h = Math.min(...l_rects.map((d) => {return d[p].height}));
-    tgt_sizes[p] = {'width': tmp_w, 'height': tmp_h};
-  });
-
-  // 最小サイズに合わせて全パーツを切り出し
-  let imgs = [];
-  l_mat.forEach(function(m, i){
-    let obj_tmp = {};
+  return new Promise(function(resolve){
+    const n_tgt = l_mat.length;
+    console.log(l_mat.length, l_mat[0].rows, l_mat[0].cols);
+    let l_rects = [];
+    let tmp_rects = {};
+    for (let i = 0; i < l_mat.length; i++) {
+      // 画像毎に閉じるボタンの検出と枠座標取得
+      tmp_rects = detect_rects(l_mat[i]);
+      l_rects.push(tmp_rects);
+      // cv2_rectangle(l_mat[i], l_rects[i].whole, new cv.Scalar(255, 0, 0), 10);
+    }
+    // パーツ毎の最小サイズを算出
+    let tgt_sizes = {};
     load_parts.forEach(function(p){
-      let tmp_mat = new cv.Mat();
-      let tmp_dst = new cv.Mat();
-      tmp_mat = m.roi(l_rects[i][p]).clone();
-      cv.resize(tmp_mat, tmp_dst, tgt_sizes[p]);
-      obj_tmp[p] = tmp_dst.clone();
-      tmp_mat.delete();
-      tmp_dst.delete();
+      let tmp_w = Math.min(...l_rects.map((d) => {return d[p].width}));
+      let tmp_h = Math.min(...l_rects.map((d) => {return d[p].height}));
+      tgt_sizes[p] = {'width': tmp_w, 'height': tmp_h};
     });
-    imgs.push(obj_tmp);
-  });
 
-  // グループ決め
-  let l_group = [];
-  if (force_one_group) {
-    // 強制的に全画像同じグループ扱い
-    l_group = Array(n_tgt).fill(0);
-  } else {
-    // グループ番号をnullで初期化
-    l_group = Array(n_tgt).fill(null);
-    // 各画像の組み合わせ毎の一致度を格納する二次元配列宣言
-    // 似てないと1、似てると0なので1.0で初期化
-    let arr_val = new Array(n_tgt);
-    for(let y = 0; y < n_tgt; y++) {
-      arr_val[y] = new Array(n_tgt).fill(1.0);
-    }
-
-    // アイコン等からグループ決め
-    // 全組み合わせでテンプレートマッチ
-    imgs.forEach(function(img_tmpl, i){
-      imgs.forEach(function(img_tgt, j){
-        // 同じ組み合わせで二回チェックしないようjの方が大きいときだけチェック
-        if (i < j) {
-          tgt_parts_for_group.forEach(function(p){
-            let res = match_tmpl_min_max_loc(img_tgt[p], img_tmpl[p].roi(new cv.Rect(0, 0, img_tmpl[p].cols - 1, img_tmpl[p].rows - 1)).clone());
-            // パーツ毎の結果を乗算、全部似てればほぼ1のまま、どれかでも違うと一気に0に近づく
-            arr_val[Math.min(i, j)][Math.max(i, j)] *= res.maxVal
-          });
-        }
-      })
-    })
-    let current_group = -1;
-    [...Array(n_tgt).keys()].forEach(function(i){
-      if (l_group[i] == null) {
-        current_group += 1;
-        l_group[i] = current_group;
-        for (let j = i + 1; j < n_tgt; j++) {
-          if (l_group[j] == null && arr_val[i][j] > thres_match_tmpl_basic_info) {
-            l_group[j] = current_group;
-          }
-        }
-      }
-    })
-  };
-
-  console.log('グループ内でテンプレートマッチ')
-  // グループ内でテンプレートマッチ
-  // 結果格納用配列初期化
-  arr_val = new Array(n_tgt);
-  for(let y = 0; y < n_tgt; y++) {
-    arr_val[y] = new Array(n_tgt).fill(0.0);
-  }
-  arr_loc = new Array(n_tgt);
-  for(let y = 0; y < n_tgt; y++) {
-    arr_loc[y] = new Array(n_tgt).fill(0.0);
-  }
-  imgs.forEach(function(img_tmpl, i){
-    imgs.forEach(function(img_tgt, j){
-      // 同じ画像ではなく、かつ同じグループだったら比較開始
-      if (i != j && l_group[i] == l_group[j]) {
-        let res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row);
-        // 1行分の範囲でヒットしたら重なってるはずのエリアで改めてヒットするか確認
-        if (arr_val[Math.min(i, j)][Math.max(i, j)] < res.maxVal && thres_match_tmpl < res.maxVal) {
-          console.log(i, j);
-          let dist = img_tgt.scroll.rows - img_tmpl.bottom_row.rows - res.maxLoc.y;
-          let tmp_img_tgt = new cv.Mat();
-          let tmp_img_tmpl = new cv.Mat();
-          if (i >= j) {
-            dist *= -1;
-          }
-          if (dist < 0) {
-            tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, -dist, img_tmpl.scroll.cols, img_tmpl.scroll.rows + dist)).clone();
-            tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows + dist)).clone();
-          } else {
-            tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, dist, img_tmpl.scroll.cols, img_tmpl.scroll.rows - dist)).clone();
-            tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows - dist)).clone();
-          }
-          let tmp_res = match_tmpl_min_max_loc(tmp_img_tgt, tmp_img_tmpl);
-          if (thres_match_tmpl_higher < tmp_res.maxVal) {
-            arr_val[Math.min(i, j)][Math.max(i, j)] = res.maxVal;
-            arr_loc[Math.min(i, j)][Math.max(i, j)] = dist;
-          }
-          tmp_img_tmpl.delete();
-          tmp_img_tgt.delete();
-        }
-      }
-    })
-  })
-  // arr_val.forEach(function(r){console.log(r)});
-  // arr_loc.forEach(function(r){console.log(r)});
-
-  console.log('各グループの先頭画像からの相対距離を算出')
-  // 各グループの先頭画像からの相対距離を算出
-  let relative_height = new Array(n_tgt).fill(null);
-  relative_height[0] = 0;
-  let l_isfinished = new Array(n_tgt).fill(false);
-  let n_finished_before = -1;
-  let n_finished = 0;
-  // グループ毎に処理
-  [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
-    let is_group_initialized = false;
-    while (true) {
-      n_finished_before = n_finished;
-      [...Array(n_tgt).keys()].forEach(function(y){
-        // 今のグループだけ処理
-        if (l_group[y] == current_group) {
-          // 各グループ先頭の画像を基準とする
-          if (!is_group_initialized) {
-            relative_height[y] = 0;
-            is_group_initialized = true;
-          }
-          // 相対座標が決まってたら、まだ決まってない他の画像に波及開始
-          if (!l_isfinished[y] && relative_height[y] != null) {
-            [...Array(n_tgt).keys()].forEach(function(i){
-              [...Array(n_tgt).keys()].forEach(function(j){
-                if (arr_loc[i][j] != 0 && l_group[i] == current_group && l_group[j] == current_group) {
-                  if (i < y && j == y && relative_height[i] == null) {
-                    relative_height[i] = relative_height[y] - arr_loc[i][j]
-                  } else if (i == y && j > y && relative_height[j] == null) {
-                    relative_height[j] = relative_height[y] + arr_loc[i][j]
-                  }
-                }
-              })
-            })
-            l_isfinished[y] = true
-          }
-        }
-      })
-      // 全部チェックし終えたか更新出来なくなったら終了
-      n_finished = l_isfinished.filter((d) => d).length;
-      if (n_finished == n_tgt || n_finished_before == n_finished) {
-        break;
-      }
-    }
-  })
-
-  // グループ毎に縦に繋げて最後に横につなげる
-  let imgs_tmp = new cv.MatVector();
-  let imgs_out = new cv.MatVector();
-  [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
-    // 今のグループに属する画像のインデックス一覧を取得
-    let l_index = [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] != null);
-    // 相対座標が低い順にソート
-    l_index.sort((first, second) => relative_height[first] - relative_height[second]);
-    let imgs_part = new cv.MatVector();
-    let is_header = true;
-    let relative_height_before = 0;
-    l_index.forEach(function(i){
-      // 各グループの先頭はヘッダー部分付き
-      if (is_header) {
-        imgs_part.push_back(imgs[i].scroll_with_header);
-        is_header = false;
-        relative_height_before = relative_height[i];
-      } else {
-        let img_tmp = imgs[i].scroll_full_width;
-        let y = Math.floor(imgs[i].scroll.rows - (relative_height[i] - relative_height_before));
-        let tmp_rect = new cv.Rect(0, y, img_tmp.cols, img_tmp.rows - y);
-        let img_tmp_part = img_tmp.roi(tmp_rect).clone();
-        imgs_part.push_back(img_tmp_part.clone());
-        relative_height_before = relative_height[i];
-        img_tmp_part.delete();
-      }
+    // 最小サイズに合わせて全パーツを切り出し
+    let imgs = [];
+    l_mat.forEach(function(m, i){
+      let obj_tmp = {};
+      load_parts.forEach(function(p){
+        let tmp_mat = new cv.Mat();
+        let tmp_dst = new cv.Mat();
+        tmp_mat = m.roi(l_rects[i][p]).clone();
+        cv.resize(tmp_mat, tmp_dst, tgt_sizes[p]);
+        obj_tmp[p] = tmp_dst.clone();
+        tmp_mat.delete();
+        tmp_dst.delete();
+      });
+      imgs.push(obj_tmp);
     });
-    // はぐれがいたら末尾にトリミングなしで追加
-    [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] == null).forEach(function(i){
-      imgs_part.push_back(imgs[i].scroll_full_width);
-    });
-    // 縦に連結して出力
-    let tmp_dst_vcon = new cv.Mat();
-    cv.vconcat(imgs_part, tmp_dst_vcon);
-    imgs_tmp.push_back(tmp_dst_vcon);
-    // メモリ解放
-    tmp_dst_vcon.delete();
-    imgs_part.delete();
-  });
 
-  // 縦に連結準備
-  let min_width = Math.min(...[...Array(imgs_tmp.size()).keys()].map((d) => imgs_tmp.get(d).cols));
-  let imgs_equal_width = new cv.MatVector();
-  [...Array(imgs_tmp.size()).keys()].forEach(function(i){
-    imgs_equal_width.push_back(cv2_resize_fixed_aspect(imgs_tmp.get(i), min_width, -1))
-  });
-  imgs_tmp.delete()
-  let max_height = Math.max(...[...Array(imgs_equal_width.size()).keys()].map((d) => imgs_equal_width.get(d).rows));
-  [...Array(imgs_equal_width.size()).keys()].forEach(function(i){
-    if (max_height > imgs_equal_width.get(i).rows) {
-      let r = max_height - imgs_equal_width.get(i).rows;
-      let img_white = cv.matFromArray(r, min_width, cv.CV_8UC3, new Array(r * min_width * 3).fill(255));
-      let mv_tmp = new cv.MatVector();
-      tmp_dst_vcon = new cv.Mat();
-      mv_tmp.push_back(imgs_equal_width.get(i));
-      mv_tmp.push_back(img_white);
-      cv.vconcat(mv_tmp, tmp_dst_vcon);
-      imgs_out.push_back(tmp_dst_vcon);
-      img_white.delete();
-      mv_tmp.delete();
-      tmp_dst_vcon.delete();
+    // グループ決め
+    let l_group = [];
+    if (force_one_group) {
+      // 強制的に全画像同じグループ扱い
+      l_group = Array(n_tgt).fill(0);
     } else {
-      imgs_out.push_back(imgs_equal_width.get(i));
+      // グループ番号をnullで初期化
+      l_group = Array(n_tgt).fill(null);
+      // 各画像の組み合わせ毎の一致度を格納する二次元配列宣言
+      // 似てないと1、似てると0なので1.0で初期化
+      let arr_val = new Array(n_tgt);
+      for(let y = 0; y < n_tgt; y++) {
+        arr_val[y] = new Array(n_tgt).fill(1.0);
+      }
+
+      // アイコン等からグループ決め
+      // 全組み合わせでテンプレートマッチ
+      imgs.forEach(function(img_tmpl, i){
+        imgs.forEach(function(img_tgt, j){
+          // 同じ組み合わせで二回チェックしないようjの方が大きいときだけチェック
+          if (i < j) {
+            tgt_parts_for_group.forEach(function(p){
+              let res = match_tmpl_min_max_loc(img_tgt[p], img_tmpl[p].roi(new cv.Rect(0, 0, img_tmpl[p].cols - 1, img_tmpl[p].rows - 1)).clone());
+              // パーツ毎の結果を乗算、全部似てればほぼ1のまま、どれかでも違うと一気に0に近づく
+              arr_val[Math.min(i, j)][Math.max(i, j)] *= res.maxVal
+            });
+          }
+        })
+      })
+      let current_group = -1;
+      [...Array(n_tgt).keys()].forEach(function(i){
+        if (l_group[i] == null) {
+          current_group += 1;
+          l_group[i] = current_group;
+          for (let j = i + 1; j < n_tgt; j++) {
+            if (l_group[j] == null && arr_val[i][j] > thres_match_tmpl_basic_info) {
+              l_group[j] = current_group;
+            }
+          }
+        }
+      })
+    };
+
+    // changePercentage(10);
+    repaint();
+    console.log('グループ内でテンプレートマッチ')
+    // グループ内でテンプレートマッチ
+    // 結果格納用配列初期化
+    arr_val = new Array(n_tgt);
+    for(let y = 0; y < n_tgt; y++) {
+      arr_val[y] = new Array(n_tgt).fill(0.0);
     }
-  });
-
-
-  let dst = new cv.Mat();
-  cv.hconcat(imgs_out, dst);
-  // dst = hconcat_resize_min(imgs.map((d) => {return d.scroll_with_header}));
-  // dst = imgs_out.get(0);
-  // メモリ解放
-  imgs.forEach(function(i){
-    load_parts.forEach(function(p){
-      i[p].delete();
+    arr_loc = new Array(n_tgt);
+    for(let y = 0; y < n_tgt; y++) {
+      arr_loc[y] = new Array(n_tgt).fill(0.0);
+    }
+    imgs.forEach(function(img_tmpl, i){
+      // changePercentage(10 + i);
+      console.log(i + 1, '/', imgs.length);
+      imgs.forEach(function(img_tgt, j){
+        // 同じ画像ではなく、かつ同じグループだったら比較開始
+        if (i != j && l_group[i] == l_group[j]) {
+          let res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row);
+          // 1行分の範囲でヒットしたら重なってるはずのエリアで改めてヒットするか確認
+          if (arr_val[Math.min(i, j)][Math.max(i, j)] < res.maxVal && thres_match_tmpl < res.maxVal) {
+            // console.log(i, j);
+            let dist = img_tgt.scroll.rows - img_tmpl.bottom_row.rows - res.maxLoc.y;
+            let tmp_img_tgt = new cv.Mat();
+            let tmp_img_tmpl = new cv.Mat();
+            if (i >= j) {
+              dist *= -1;
+            }
+            if (dist < 0) {
+              tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, -dist, img_tmpl.scroll.cols, img_tmpl.scroll.rows + dist)).clone();
+              tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows + dist)).clone();
+            } else {
+              tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, dist, img_tmpl.scroll.cols, img_tmpl.scroll.rows - dist)).clone();
+              tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows - dist)).clone();
+            }
+            let tmp_res = match_tmpl_min_max_loc(tmp_img_tgt, tmp_img_tmpl);
+            if (thres_match_tmpl_higher < tmp_res.maxVal) {
+              arr_val[Math.min(i, j)][Math.max(i, j)] = res.maxVal;
+              arr_loc[Math.min(i, j)][Math.max(i, j)] = dist;
+            }
+            tmp_img_tmpl.delete();
+            tmp_img_tgt.delete();
+          }
+        }
+      })
     })
-  });
-  imgs_equal_width.delete();
-  imgs_out.delete();
-  return dst;
+    // arr_val.forEach(function(r){console.log(r)});
+    // arr_loc.forEach(function(r){console.log(r)});
+
+    // changePercentage(90);
+    console.log('各グループの先頭画像からの相対距離を算出')
+    // 各グループの先頭画像からの相対距離を算出
+    let relative_height = new Array(n_tgt).fill(null);
+    relative_height[0] = 0;
+    let l_isfinished = new Array(n_tgt).fill(false);
+    let n_finished_before = -1;
+    let n_finished = 0;
+    // グループ毎に処理
+    [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
+      let is_group_initialized = false;
+      while (true) {
+        n_finished_before = n_finished;
+        [...Array(n_tgt).keys()].forEach(function(y){
+          // 今のグループだけ処理
+          if (l_group[y] == current_group) {
+            // 各グループ先頭の画像を基準とする
+            if (!is_group_initialized) {
+              relative_height[y] = 0;
+              is_group_initialized = true;
+            }
+            // 相対座標が決まってたら、まだ決まってない他の画像に波及開始
+            if (!l_isfinished[y] && relative_height[y] != null) {
+              [...Array(n_tgt).keys()].forEach(function(i){
+                [...Array(n_tgt).keys()].forEach(function(j){
+                  if (arr_loc[i][j] != 0 && l_group[i] == current_group && l_group[j] == current_group) {
+                    if (i < y && j == y && relative_height[i] == null) {
+                      relative_height[i] = relative_height[y] - arr_loc[i][j]
+                    } else if (i == y && j > y && relative_height[j] == null) {
+                      relative_height[j] = relative_height[y] + arr_loc[i][j]
+                    }
+                  }
+                })
+              })
+              l_isfinished[y] = true
+            }
+          }
+        })
+        // 全部チェックし終えたか更新出来なくなったら終了
+        n_finished = l_isfinished.filter((d) => d).length;
+        if (n_finished == n_tgt || n_finished_before == n_finished) {
+          break;
+        }
+      }
+    })
+
+    // グループ毎に縦に繋げて最後に横につなげる
+    let imgs_tmp = new cv.MatVector();
+    let imgs_out = new cv.MatVector();
+    [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
+      // 今のグループに属する画像のインデックス一覧を取得
+      let l_index = [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] != null);
+      // 相対座標が低い順にソート
+      l_index.sort((first, second) => relative_height[first] - relative_height[second]);
+      let imgs_part = new cv.MatVector();
+      let is_header = true;
+      let relative_height_before = 0;
+      l_index.forEach(function(i){
+        // 各グループの先頭はヘッダー部分付き
+        if (is_header) {
+          imgs_part.push_back(imgs[i].scroll_with_header);
+          is_header = false;
+          relative_height_before = relative_height[i];
+        } else {
+          let img_tmp = imgs[i].scroll_full_width;
+          let y = Math.floor(imgs[i].scroll.rows - (relative_height[i] - relative_height_before));
+          let tmp_rect = new cv.Rect(0, y, img_tmp.cols, img_tmp.rows - y);
+          let img_tmp_part = img_tmp.roi(tmp_rect).clone();
+          imgs_part.push_back(img_tmp_part.clone());
+          relative_height_before = relative_height[i];
+          img_tmp_part.delete();
+        }
+      });
+      // はぐれがいたら末尾にトリミングなしで追加
+      [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] == null).forEach(function(i){
+        imgs_part.push_back(imgs[i].scroll_full_width);
+      });
+      // 縦に連結して出力
+      let tmp_dst_vcon = new cv.Mat();
+      cv.vconcat(imgs_part, tmp_dst_vcon);
+      imgs_tmp.push_back(tmp_dst_vcon);
+      // メモリ解放
+      tmp_dst_vcon.delete();
+      imgs_part.delete();
+    });
+
+    // 縦に連結準備
+    let min_width = Math.min(...[...Array(imgs_tmp.size()).keys()].map((d) => imgs_tmp.get(d).cols));
+    let imgs_equal_width = new cv.MatVector();
+    [...Array(imgs_tmp.size()).keys()].forEach(function(i){
+      imgs_equal_width.push_back(cv2_resize_fixed_aspect(imgs_tmp.get(i), min_width, -1))
+    });
+    imgs_tmp.delete()
+    let max_height = Math.max(...[...Array(imgs_equal_width.size()).keys()].map((d) => imgs_equal_width.get(d).rows));
+    [...Array(imgs_equal_width.size()).keys()].forEach(function(i){
+      if (max_height > imgs_equal_width.get(i).rows) {
+        let r = max_height - imgs_equal_width.get(i).rows;
+        let img_white = cv.matFromArray(r, min_width, cv.CV_8UC3, new Array(r * min_width * 3).fill(255));
+        let mv_tmp = new cv.MatVector();
+        tmp_dst_vcon = new cv.Mat();
+        mv_tmp.push_back(imgs_equal_width.get(i));
+        mv_tmp.push_back(img_white);
+        cv.vconcat(mv_tmp, tmp_dst_vcon);
+        imgs_out.push_back(tmp_dst_vcon);
+        img_white.delete();
+        mv_tmp.delete();
+        tmp_dst_vcon.delete();
+      } else {
+        imgs_out.push_back(imgs_equal_width.get(i));
+      }
+    });
+
+
+    let dst = new cv.Mat();
+    cv.hconcat(imgs_out, dst);
+    // dst = hconcat_resize_min(imgs.map((d) => {return d.scroll_with_header}));
+    // dst = imgs_out.get(0);
+    // メモリ解放
+    imgs.forEach(function(i){
+      load_parts.forEach(function(p){
+        i[p].delete();
+      })
+    });
+    imgs_equal_width.delete();
+    imgs_out.delete();
+    resolve(dst);
+  })
 }

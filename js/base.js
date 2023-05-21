@@ -1,6 +1,6 @@
 function raiseErrMsg(t) {
   let text = 'エラーが発生しました。ページを再読み込みして下さい。';
-  if (!typeof t === 'undefined') {
+  if (!(typeof t === 'undefined')) {
     text = t;
   };
   document.getElementById('errMsg').textContent = text;
@@ -9,12 +9,25 @@ function raiseErrMsg(t) {
 };
 function raiseNormalMsg(t) {
   let text = '';
-  if (!typeof t === 'undefined') {
+  if (!(typeof t === 'undefined')) {
     text = t;
   };
   document.getElementById('normalMsg').textContent = text;
   document.getElementById('normalMsg').classList.remove('hidden');
   setTimeout(function(){document.getElementById('normalMsg').classList.add('hidden');}, Math.max(text.length * 120, 5000));
+};
+function changePercentage(val) {
+  document.getElementById('percentage').innerText = Math.floor(val) + '%';
+  if (val == 100) {
+    document.getElementById('loading').classList.add('hidden');
+  } else {
+    document.getElementById('loading').classList.remove('hidden');
+  }
+}
+const repaint = async () => {
+  for (let i = 0; i < 2; i++) {
+      await new Promise(resolve => requestAnimationFrame(resolve));
+  }
 };
 function resetCanvas() {
   const canvas = document.getElementById("canvasOutput");
@@ -96,8 +109,8 @@ function photoPreview(event, fs = null) {
     reader.readAsDataURL(files[i]);
   };
 };
-function generatePhoto() {
-  // try {
+async function generatePhoto() {
+  try {
     // なんか長辺が2175pxより大きいとMatchShapesでエラーになるので予め小さくしとく
     const limit_px = 2175;
     if (document.getElementById('btnSubmit').classList.contains('imgNotReady')) {
@@ -105,6 +118,9 @@ function generatePhoto() {
     } else if (document.getElementById('btnSubmit').classList.contains('cvNotReady')) {
       throw new Error('ライブラリの読み込みが完了していません。');
     }
+    // ローディング開始
+    changePercentage(0);
+    await repaint();
     // 入力画像群を隠し要素経由にして等倍で読み込み
     let imgElements = document.getElementsByClassName('previewImage');
     let l_mat = [];
@@ -123,7 +139,7 @@ function generatePhoto() {
       tmpImg.delete();
     };
     // メイン加工関数呼び出し
-    dst = generateReceipt(l_mat);
+    dst = await generateReceipt(l_mat);
     if (!(typeof dst === "undefined")) {
       // 画像出力
       if (!document.getElementById('canvasOutput')) {
@@ -133,6 +149,8 @@ function generatePhoto() {
         document.getElementById('overview').appendChild(tmpCanvasElement);
       }
       cv.imshow('canvasOutput', dst);
+      // ローディング解除
+      changePercentage(100);
       // 保存ボタンを出してスクロール
       document.getElementById('SaveBtnArea').classList.remove('hidden');
       document.querySelector('#overview > p').classList.add('hidden');
@@ -141,9 +159,11 @@ function generatePhoto() {
       l_mat.forEach(function(m){m.delete();});
       dst.delete();
     }
-  // } catch(e) {
-  //   raiseErrMsg(e.message);
-  // }
+  } catch(e) {
+    console.log(e);
+    raiseErrMsg(e.message);
+    document.getElementById('loading').classList.add('hidden');
+  }
 };
 function resetPhoto() {
   try {
