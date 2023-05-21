@@ -56,10 +56,10 @@ function vconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
     cv.resize(im_list[i], dst, dsize, 0, 0, interpolation);
     im_list_resize.push_back(dst);
   };
-  dst = new cv.Mat();
-  cv.vconcat(im_list_resize, dst);
+  let out = new cv.Mat();
+  cv.vconcat(im_list_resize, out);
   im_list_resize.delete();
-  return dst;
+  return out;
 };
 function hconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
   const h_min = Math.min(...im_list.map((d) => {return d.rows}));
@@ -71,11 +71,12 @@ function hconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
     dsize = new cv.Size(Math.floor(im_list[i].cols * h_min / im_list[i].rows), h_min);
     cv.resize(im_list[i], dst, dsize, 0, 0, interpolation);
     im_list_resize.push_back(dst);
+    dst.delete();
   };
-  dst = new cv.Mat();
-  cv.hconcat(im_list_resize, dst);
+  let out = new cv.Mat();
+  cv.hconcat(im_list_resize, out);
   im_list_resize.delete();
-  return dst;
+  return out;
 }
 function cv2_resize_fixed_aspect(img, width = -1, height = -1) {
   if (typeof img === 'undefined' || (width == -1 && height == -1)) {
