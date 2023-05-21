@@ -347,6 +347,51 @@ function generateReceipt(l_mat) {
   };
   console.log(l_group);
 
+  // グループ内でテンプレートマッチ
+  // 結果格納用配列初期化
+  arr_val = new Array(n_tgt);
+  for(let y = 0; y < n_tgt; y++) {
+    arr_val[y] = new Array(n_tgt).fill(0.0);
+  }
+  arr_loc = new Array(n_tgt);
+  for(let y = 0; y < n_tgt; y++) {
+    arr_loc[y] = new Array(n_tgt).fill(0.0);
+  }
+  imgs.forEach(function(img_tmpl, i){
+    imgs.forEach(function(img_tgt, j){
+      // 同じ画像ではなく、かつ同じグループだったら比較開始
+      if (i != j && l_group[i] == l_group[j]) {
+        let res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row);
+        // 1行分の範囲でヒットしたら重なってるはずのエリアで改めてヒットするか確認
+        if (arr_val[Math.min(i, j)][Math.max(i, j)] < res.maxVal && thres_match_tmpl < res.maxVal) {
+          let dist = img_tgt.scroll.rows - img_tmpl.bottom_row.rows - res.maxLoc.y;
+          let tmp_img_tgt = new cv.Mat();
+          let tmp_img_tmpl = new cv.Mat();
+          if (i >= j) {
+            dist *= -1;
+          }
+          if (dist < 0) {
+            tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, -dist, img_tmpl.scroll.cols, img_tmpl.scroll.rows + dist)).clone();
+            tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows + dist)).clone();
+          } else {
+            tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, dist, img_tmpl.scroll.cols, img_tmpl.scroll.rows - dist)).clone();
+            tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows - dist)).clone();
+          }
+          let tmp_res = match_tmpl_min_max_loc(tmp_img_tgt, tmp_img_tmpl);
+          if (thres_match_tmpl_higher < tmp_res.maxVal) {
+            arr_val[Math.min(i, j)][Math.max(i, j)] = res.maxVal
+            arr_loc[Math.min(i, j)][Math.max(i, j)] = dist
+          }
+          tmp_img_tmpl.delete();
+          tmp_img_tgt.delete();
+        }
+      }
+    })
+  })
+  // arr_val.forEach(function(r){console.log(r)});
+  // arr_loc.forEach(function(r){console.log(r)});
+
+
   let dst = new cv.Mat();
   // dst = hconcat_resize_min(l_mat);
   dst = hconcat_resize_min(imgs.map((d) => {return d.scroll_with_header}));
