@@ -437,9 +437,63 @@ function generateReceipt(l_mat) {
   console.log(l_isfinished);
   console.log(l_group);
 
+  // グループ毎に縦に繋げて最後に横につなげる
+  let imgs_tmp = [];
+  let imgs_out = [];
+  [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
+    // 今のグループに属する画像のインデックス一覧を取得
+    let l_index = [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] != null);
+    // 相対座標が低い順にソート
+    l_index.sort((first, second) => relative_height[first] - relative_height[second]);
+    console.log(l_index);
+    let imgs_part = [];
+    let is_header = true;
+    let relative_height_before = 0;
+    l_index.forEach(function(i){
+      // 各グループの先頭はヘッダー部分付き
+      if (is_header) {
+        imgs_part.push(imgs[i].scroll_with_header.clone());
+        is_header = false;
+      } else {
+        let img_tmp = imgs[i].scroll_full_width;
+        let y = Math.floor(imgs[i].scroll.rows - (relative_height[i] - relative_height_before));
+        imgs_part.push(img_tmp.roi(new cv.Rect(0, y, img_tmp.cols, img_tmp.rows - y)).clone());
+        relative_height_before = relative_height[i];
+      }
+    });
+    // はぐれがいたら末尾にトリミングなしで追加
+    [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] == null).forEach(function(i){
+      imgs_part.push(imgs[i].scroll_full_width.clone());
+    });
+    // 縦に連結して出力
+    imgs_tmp.push(vconcat_resize_min(imgs_part));
+    // メモリ解放
+    imgs_part.forEach(function(i){i.delete()});
+  });
+
+  // 縦に連結準備
+  let min_width = Math.min(...imgs_tmp.map((d) => d.cols));
+  let imgs_equal_width = [];
+  imgs_tmp.forEach(function(i){
+    imgs_equal_width.push(cv2_resize_fixed_aspect(i, min_width, -1));
+    i.delete();
+  });
+  let max_height = Math.max(...imgs_equal_width.map((d) => d.rows));
+  imgs_equal_width.forEach(function(i){
+    if (max_height > i.rows) {
+      let img_white = cv.matFromArray(max_height - i.rows, min_width, cv.CV_8UC1, [255, 255, 255]);
+      imgs_out.push(vconcat_resize_min([i, img_white]));
+      img_white.delete();
+    } else {
+      imgs_out.push(i.clone());
+    }
+    i.delete();
+  });
+
+
   let dst = new cv.Mat();
-  // dst = hconcat_resize_min(l_mat);
-  dst = hconcat_resize_min(imgs.map((d) => {return d.scroll_with_header}));
+  dst = hconcat_resize_min(imgs_out);
+  // dst = hconcat_resize_min(imgs.map((d) => {return d.scroll_with_header}));
   // dst = cv2_resize_fixed_aspect(dst, -1, 300);
   // メモリ解放
   imgs.forEach(function(i){
@@ -447,5 +501,6 @@ function generateReceipt(l_mat) {
       i[p].delete()
     })
   });
+  imgs_out.forEach(function(i){i.delete()});
   return dst;
 }
