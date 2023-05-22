@@ -94,18 +94,18 @@ header{
   text-decoration: none;
 }
 #pOpen{
-  background-color: #6a6aea;
-  border: 1px solid #6a6aea;
+  background-color: #44d900;
+  border: 1px solid #44d900;
 }
 #pOpen a{
   color: #fff;
 }
 #uuOpen{
   background-color: #fff;
-  border: 1px solid #6a6aea;
+  border: 1px solid #44d900;
 }
 #uuOpen a{
-  color: #6a6aea;
+  color: #44d900;
 }
 .popupBase{
   z-index: 999;
@@ -212,8 +212,8 @@ header{
   margin: .2rem;
   font-weight: bold;
   color: #fff;
-  background-color: #6a6aea;
-  border: 1px solid #6a6aea;
+  background-color: #44d900;
+  border: 1px solid #44d900;
   cursor: pointer;
   text-align: center;
   font-size: 16px;
@@ -222,8 +222,8 @@ header{
 }
 .btn.weak{
   background-color: #fff;
-  border-color: #6a6aea;
-  color: #6a6aea;
+  border-color: #44d900;
+  color: #44d900;
   display: inline-block;
   box-sizing: border-box;
 }
@@ -243,7 +243,7 @@ header{
   display: inline-block;
 }
 .btn.weak a{
-  color: #6a6aea;
+  color: #44d900;
 }
 .btn.disable a{
   color: #aaa;
