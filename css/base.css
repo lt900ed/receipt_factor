@@ -269,7 +269,7 @@ h2{
   font-size: 24px;
 }
 hr{
-  margin-top: 2rem;
+  margin-top: 1rem;
   margin-bottom: .5rem;
   color: #ccc;
 }
@@ -725,4 +725,36 @@ div.icon--twitter::after{
 @keyframes sk-circleFadeDelay {
   0%, 39%, 100% { opacity: 0; }
   40% { opacity: 1; }
+}
+#detail {
+  text-align: left;
+  background-color: #fff;
+}
+label{
+  display: block;
+  font-size: 18px;
+  line-height: 18px;
+  margin-top: 1rem;
+  margin-bottom: .5rem;
+}
+.editormd, .markdown-body, .editormd .CodeMirror{
+  font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+  width: inherit;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+.markdown-body p{
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+.markdown-body ul {
+  list-style: circle;
+}
+.editormd-preview-container, .editormd-html-preview {
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow: auto;
+  width: inherit;
+  background-color: #fff;
 }

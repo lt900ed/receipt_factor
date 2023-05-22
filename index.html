@@ -3,6 +3,15 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-CB6GTLS93M"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-CB6GTLS93M');
+  </script>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -40,20 +49,12 @@
   </div>
   <header id="pageHeader">
     <div class="logo">
-      <h1><a href="/wf_party_archives/">レシート因子メーカー</a></h1>
+      <h1><a href="./">レシート因子メーカー</a></h1>
     </div>
   </header>
   <div class="toolbar">
     <div id="errMsg" class="message hidden"></div>
     <div id="normalMsg" class="message hidden"></div>
-  </div>
-  <div id="eolMsg">
-    <article>
-    <p>
-      このサイトではウマ娘の因子やスキル一覧のスクリーンショットを連結することが出来ます。<br>
-      <!-- 詳しくは<a href="https://twitter.com/lt900ed/status/1660366552322183170" target="_blank" rel="noopener">ツイッター</a>をご確認下さい。 -->
-    </p>
-    </article>
   </div>
   <div class="wrapper">
     <article id="detail" data-party_id="advanced_soldier-1" data-party="1916">
@@ -66,6 +67,7 @@
                   <p class="drag-drop-buttons">
                       <input id="fileInput" type="file" accept="image/*" multiple="multiple" value="ファイルを選択" name="photo" onChange="photoPreview(event)">
                   </p>
+                  <p>自動で並び替えるので取り込みは順不同！</p>
               </div>
           </div>
           <div id="previewArea">
@@ -88,11 +90,44 @@
         <p>ここに結果が表示されます</p>
       </section>
       <hr>
+      <section id="howto">
+        <label>使い方</label>
+        <div class="markdown-body editormd-preview-container" id=memo_text>
+          <p>1.殿堂入りウマ娘の詳細画面をスクロールしながらスクリーンショットを撮る<br>
+          ※スキル、継承、育成情報タブいずれも対応しています。<br>
+          ※少なくとも二行ずつ重なるように撮影して下さい。<br>
+          ※上部の「ウマ娘詳細」という文字が通知などで隠れないようにして下さい。</p>
+          <p>2.当サイトにスクリーンショットを取り込む<br>
+          ※取り込む順番は自由です。加工時に自動で並び替えます。<br>
+          ※不要な画像は各プレビュー画像左上の✕をタップで削除出来ます。<br>
+          ※複数キャラまとめて取り込めます。<br>
+          ※同じ殿堂入りウマ娘のスキルと継承など複数のタブはまとめて処理出来ません。</p>
+          <p>3.作成ボタンをタップ<br>
+          ※取り込んだ画像の枚数に応じて即座～数十秒時間がかかります。</p>
+          <p>4.出力されたレシート画像を確認してJPG(orPNG)で保存をタップ<br>
+          ※複数キャラ取り込んだ場合左右に並べて出力されます。<br>
+          ※リセットボタンで全てのプレビュー画像と出力結果を削除して最初からやり直せます。</p>
+        </div>
+      </section>
+      <hr>
+      <section id="updateLog">
+        <label>アップデート履歴</label>
+        <div class="markdown-body editormd-preview-container">
+          <p>Ver1.0:<br>
+          初公開
+          </p>
+        </div>
+      </section>
+      <hr>
     </article>
   </div>
   <footer>
     <p class="resources">ご意見ご要望:
       <a href="https://twitter.com/lt900ed" target="_blank" rel="noopener">@lt900ed</a>
+      <a href="https://forms.gle/G5Mryrjc9uCBbUay5" target="_blank" rel="noopener">Googleフォーム</a>
+    </p>
+    <p class="resources">ご支援:
+      <a href="https://twitter.com/lt900ed" target="_blank" rel="noopener">欲しいものリスト</a>
     </p>
     <p class="resources"><a href="./">レシート因子メーカー Ver.1.0</a></p>
   </footer>
