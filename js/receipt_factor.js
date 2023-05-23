@@ -37,7 +37,7 @@ const thres_gray = 240;
 const thres_cont_close = 0.1;
 const thres_match_tmpl = 0.92;
 const thres_match_tmpl_basic_info = 0.85;
-const thres_match_tmpl_higher = 0.5;
+const thres_match_tmpl_higher = 0.65;
 const thres_header = 0.9;
 
 //パラメータ
@@ -89,7 +89,7 @@ function cv2_resize_fixed_aspect(img, width = -1, height = -1) {
     } else {
       dsize = new cv.Size(width, Math.floor(width / img.cols * img.rows));
     };
-    console.log(img.size(), '→', dsize);
+    // console.log(img.size(), '→', dsize);
     cv.resize(img, dst, dsize, 0, 0);
     return dst;
   }
@@ -347,9 +347,9 @@ function generateReceipt(l_mat) {
         }
       })
     };
+    // console.log(l_group);
 
     // changePercentage(10);
-    repaint();
     console.log('グループ内でテンプレートマッチ')
     // グループ内でテンプレートマッチ
     // 結果格納用配列初期化
@@ -385,6 +385,7 @@ function generateReceipt(l_mat) {
               tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows - dist)).clone();
             }
             let tmp_res = match_tmpl_min_max_loc(tmp_img_tgt, tmp_img_tmpl);
+            // console.log(i, j, tmp_res.maxVal);
             if (thres_match_tmpl_higher < tmp_res.maxVal) {
               arr_val[Math.min(i, j)][Math.max(i, j)] = res.maxVal;
               arr_loc[Math.min(i, j)][Math.max(i, j)] = dist;
