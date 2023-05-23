@@ -404,6 +404,7 @@ function generateReceipt(l_mat) {
     // 各グループの先頭画像からの相対距離を算出
     let relative_height = new Array(n_tgt).fill(null);
     relative_height[0] = 0;
+    let l_relative_height_score = new Array(n_tgt).fill(0.0);
     let l_isfinished = new Array(n_tgt).fill(false);
     let n_finished_before = -1;
     let n_finished = 0;
@@ -418,6 +419,7 @@ function generateReceipt(l_mat) {
             // 各グループ先頭の画像を基準とする
             if (!is_group_initialized) {
               relative_height[y] = 0;
+              l_relative_height_score[y] = 1;
               is_group_initialized = true;
             }
             // 相対座標が決まってたら、まだ決まってない他の画像に波及開始
@@ -425,10 +427,15 @@ function generateReceipt(l_mat) {
               [...Array(n_tgt).keys()].forEach(function(i){
                 [...Array(n_tgt).keys()].forEach(function(j){
                   if (arr_loc[i][j] != 0 && l_group[i] == current_group && l_group[j] == current_group) {
-                    if (i < y && j == y && relative_height[i] == null) {
-                      relative_height[i] = relative_height[y] - arr_loc[i][j]
-                    } else if (i == y && j > y && relative_height[j] == null) {
-                      relative_height[j] = relative_height[y] + arr_loc[i][j]
+                    let tmp_relative_height_score = Math.min(l_relative_height_score[y], arr_val[i][j]);
+                    if (i < y && j == y && l_relative_height_score[i] < tmp_relative_height_score) {
+                      relative_height[i] = relative_height[y] - arr_loc[i][j];
+                      l_relative_height_score[i] = tmp_relative_height_score;
+                      l_isfinished[i] = false;
+                    } else if (i == y && j > y && l_relative_height_score[j] < tmp_relative_height_score) {
+                      relative_height[j] = relative_height[y] + arr_loc[i][j];
+                      l_relative_height_score[j] = tmp_relative_height_score;
+                      l_isfinished[j] = false;
                     }
                   }
                 })
@@ -466,7 +473,7 @@ function generateReceipt(l_mat) {
           let img_tmp = imgs[i].scroll_full_width;
           let y = Math.floor(imgs[i].scroll.rows - (relative_height[i] - relative_height_before));
           let tmp_rect = new cv.Rect(0, y, img_tmp.cols, img_tmp.rows - y);
-          let img_tmp_part = img_tmp.roi(tmp_rect).clone();
+          let img_tmp_part = img_tmp.roi(tmp_rect);
           imgs_part.push_back(img_tmp_part.clone());
           relative_height_before = relative_height[i];
           img_tmp_part.delete();
@@ -485,7 +492,7 @@ function generateReceipt(l_mat) {
       imgs_part.delete();
     });
 
-    // 縦に連結準備
+    // 横に連結準備
     let min_width = Math.min(...[...Array(imgs_tmp.size()).keys()].map((d) => imgs_tmp.get(d).cols));
     let imgs_equal_width = new cv.MatVector();
     [...Array(imgs_tmp.size()).keys()].forEach(function(i){
