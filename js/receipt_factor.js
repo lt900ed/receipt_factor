@@ -172,11 +172,20 @@ function detect_rects(img_in) {
   let only_matched = true;
   for (let i = 0; i < mv_contours_only_large.size(); i++) {
     is_close_val = cv.matchShapes(mv_contours_only_large.get(i), msk_close, cv.CONTOURS_MATCH_I3, 0);
-    if (!only_matched || (is_close_val < thres_cont_close && is_close_val < min_is_close_val)) {
+    if (!only_matched) {
       cont_out.push(mv_contours_only_large.get(i));
       info_out.push({
         'index': i,
         'is_close': is_close_val < thres_cont_close,
+        'is_close_val': is_close_val
+      });
+    } else if (is_close_val < thres_cont_close && is_close_val < min_is_close_val) {
+      cont_out.shift();
+      info_out.shift();
+      cont_out.push(mv_contours_only_large.get(i));
+      info_out.push({
+        'index': i,
+        'is_close': true,
         'is_close_val': is_close_val
       });
       min_is_close_val = is_close_val;
@@ -223,14 +232,18 @@ function detect_rects(img_in) {
   // 発見したヘッダー開始位置に合わせてrect_closeを調整
   let height_act = rect_whole.whole.height - (y_act - rect_whole.whole.y)
   let act_rate = height_act / rect_whole.whole.height
+  console.log(rect_close);
   rect_close = {
     'x': rect_close.x + (rect_close.width * (1 - act_rate)) / 2,
     'y': rect_close.y + (rect_close.height * (1 - act_rate)) / 2,
     'width': rect_close.width * act_rate,
     'height': rect_close.height * act_rate,
   };
+  console.log(rect_close);
   // 枠座標を再計算
   rects = calc_rects(rect_close, rect_prop);
+  console.log(rect_whole.whole);
+  console.log(rects.whole);
   if (!(
       0 <= rects.whole.x &&
       0 <= rects.whole.y &&
@@ -480,9 +493,12 @@ function generateReceipt(l_mat) {
         }
       });
       // はぐれがいたら末尾にトリミングなしで追加
-      [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] == null).forEach(function(i){
-        imgs_part.push_back(imgs[i].scroll_full_width);
-      });
+      if ([...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] == null).length > 0) {
+        raiseNormalMsg('重なり方を検出出来ない画像があったため一部取り込み順に単純連結している箇所があります。');
+        [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] == null).forEach(function(i){
+          imgs_part.push_back(imgs[i].scroll_full_width);
+        });
+      }
       // 縦に連結して出力
       let tmp_dst_vcon = new cv.Mat();
       cv.vconcat(imgs_part, tmp_dst_vcon);

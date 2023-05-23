@@ -87,7 +87,9 @@
           <button id="btnSaveJPG" class="btn weak" name="cancel" value="JPGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'jpg');return false;">JPGで保存</button>
           <button id="btnSavePNG" class="btn weak" name="cancel" value="PNGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'png');return false;">PNGで保存</button>
         </div>
-        <p>ここに結果が表示されます</p>
+        <p id="outputAreaText">ここに結果が表示されます</p>
+        <p id="toggleSizeText" class="hidden">画像タップで表示サイズ切り替え</p>
+        <img id="outputImage" class="hidden" src="">
       </section>
       <hr>
       <section id="howto">
@@ -107,6 +109,7 @@
           ・上手く重なり方が特定出来なかった場合単純に上下に連結します。</p>
           <p>4.出力されたレシート画像を確認してJPG(orPNG)で保存をタップ<br>
           ・複数キャラ取り込んだ場合左右に並べて出力されます。<br>
+          ・出力された画像をタップすると等倍表示と画面幅に合わせて表示を切り替えられます。<br>
           ・リセットボタンで全てのプレビュー画像と出力結果を削除して最初からやり直せます。</p>
         </div>
       </section>

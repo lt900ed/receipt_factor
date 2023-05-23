@@ -66,6 +66,14 @@ function addPhoto(e) {
   divContainerItem.appendChild(img);
   preview.appendChild(divContainerItem);
 };
+function toggleOutputImageSize(e) {
+  let outputImage = document.getElementById('outputImage');
+  if (outputImage.classList.contains('full-width-image')) {
+    outputImage.classList.remove('full-width-image');
+  } else {
+    outputImage.classList.add('full-width-image');
+  }
+};
 function manageBtnStatus(action) {
   var btnSubmit = document.getElementById('btnSubmit');
   var btnReset = document.getElementById('btnReset');
@@ -142,18 +150,26 @@ async function generatePhoto() {
     dst = await generateReceipt(l_mat);
     if (!(typeof dst === "undefined")) {
       // 画像出力
-      if (!document.getElementById('canvasOutput')) {
+      let tmpCanvasElement = document.getElementById('canvasOutput');
+      if (!tmpCanvasElement) {
         // キャンバスがなかったら生成
-        let tmpCanvasElement = document.createElement('canvas');
+        tmpCanvasElement = document.createElement('canvas');
         tmpCanvasElement.setAttribute('id', 'canvasOutput');
+        tmpCanvasElement.classList.add('hidden');
         document.getElementById('overview').appendChild(tmpCanvasElement);
       }
       cv.imshow('canvasOutput', dst);
+
+      //img要素に出力
+      let outputImage = document.getElementById('outputImage');
+      outputImage.src = tmpCanvasElement.toDataURL('image/png');
+      outputImage.classList.remove('hidden');
       // ローディング解除
       changePercentage(100);
       // 保存ボタンを出してスクロール
       document.getElementById('SaveBtnArea').classList.remove('hidden');
-      document.querySelector('#overview > p').classList.add('hidden');
+      document.getElementById('outputAreaText').classList.add('hidden');
+      document.getElementById('toggleSizeText').classList.remove('hidden');
       document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
       // メモリ解放
       l_mat.forEach(function(m){m.delete();});
@@ -241,4 +257,5 @@ window.onload = function () {
       fileInput.files = files;
       photoPreview('onChange',files);
   });
+  document.getElementById('outputImage').addEventListener('click', toggleOutputImageSize, false);
 };
