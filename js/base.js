@@ -283,6 +283,22 @@ function SaveOriginal(canvas_src, ext){
       GeneratedDownloadAnker(canvas_out.toDataURL('image/jpeg', 0.95), 'receipt_' + str_dt + '.jpg');
   };
 };
+function SaveToClipBoard(canvas_src) {
+    // Canvas から Blob オブジェクトを生成
+  canvas_src.toBlob(async (blob) => {
+    try {
+        // 画像データをクリップボードに書き込む
+      const item = new ClipboardItem({
+        'image/png': blob
+      });
+      await navigator.clipboard.write([item]);
+      raiseNormalMsg('クリップボードにコピーしました。');
+    } catch(e) {
+      console.log(e);
+      raiseErrMsg('クリップボードにコピー出来ませんでした。ブラウザが非対応の可能性があります。');
+    }
+  });
+}
 window.onload = function () {
   let fileArea = document.getElementById('dragDropArea');
   let fileInput = document.getElementById('fileInput');

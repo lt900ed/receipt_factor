@@ -57,7 +57,7 @@
     <div id="normalMsg" class="message hidden"></div>
   </div>
   <div class="wrapper">
-    <article id="detail" data-party_id="advanced_soldier-1" data-party="1916">
+    <article id="detail">
       <section id="top">
         <form method="post" enctype="multipart/form-data">
           <div id="dragDropArea">
@@ -85,8 +85,9 @@
       <hr>
       <section id="overview">
         <div id="SaveBtnArea" class="buttonArea hidden">
-          <button id="btnSaveJPG" class="btn weak" name="cancel" value="JPGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'jpg');return false;">JPGで保存</button>
-          <button id="btnSavePNG" class="btn weak" name="cancel" value="PNGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'png');return false;">PNGで保存</button>
+          <button id="btnSaveJPG" class="btn weak" value="JPGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'jpg');return false;">JPGで保存</button>
+          <button id="btnSavePNG" class="btn weak" value="PNGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'png');return false;">PNGで保存</button>
+          <button id="btnSaveClipBoard" class="btn weak" value="📋にコピー" onclick="SaveToClipBoard(document.getElementById('canvasOutput'));return false;">📋にコピー</button>
         </div>
         <p id="outputAreaText">ここに結果が表示されます</p>
         <p id="toggleSizeText" class="hidden">画像タップで表示サイズ切り替え</p>
@@ -110,11 +111,13 @@
           <p>3.作成ボタンをタップ<br>
           ・取り込んだ画像の枚数に応じて即座～数十秒時間がかかります。<br>
           ・上手く重なり方が特定出来なかった場合単純に上下に連結します。</p>
-          <p>4.出力されたレシート画像を確認してJPG(orPNG)で保存をタップ<br>
+          <p>4.出力されたレシート画像を確認して保存ボタンをタップ<br>
           ・複数キャラ取り込んだ場合左右に並べて出力されます。<br>
           ・出力された画像をタップすると等倍表示と画面幅に合わせて表示を切り替えられます。<br>
           ・リセットボタンで全てのプレビュー画像と出力結果を削除して最初からやり直せます。<br>
           ・iOSで画像アプリに保存したい場合は画像長押しから保存して下さい。</p>
+          ・クリップボードにコピーは対応しているブラウザ・OSでのみ使用できます。<br>
+          　Windows 11のChrome、Edgeで動作確認しています。</p>
         </div>
       </section>
       <hr>
