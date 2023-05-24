@@ -66,6 +66,50 @@ function addPhoto(e) {
   divContainerItem.appendChild(img);
   preview.appendChild(divContainerItem);
 };
+async function addPhotoFromClipBoard() {
+  try {
+      // ClipboardItem オブジェクトのリストを取得
+    const items = await navigator.clipboard.read();
+
+    // ClipboardItem オブジェクトを一つずつ調べる
+    let l_image_index = [];
+    for (let i = 0; i < items.length; i++) {
+      // ClipboardItem オブジェクト
+      const item = items[i];
+      // データタイプが "image/png" のデータが存在するかをチェック
+      if (item.types.includes('image/png')) {
+        l_image_index.push(i);
+      }
+    }
+    if (l_image_index.length == 0) {
+      raiseErrMsg('クリップボードに画像がありません。');
+      return;
+    }
+    changePercentage(0);
+    manageBtnStatus('addImgNotReady');
+    let cnt_onload = 0;
+    for (let i = 0; i < l_image_index.length; i++) {
+      const item = items[l_image_index[i]];
+      // Blob オブジェクトを取得
+      const blob = await item.getType('image/png');
+
+      // Blob オブジェクトを Data URL として読み取る
+      const reader = new FileReader();
+      reader.onload = (function(e) {
+        addPhoto(e);
+        ++cnt_onload;
+        if (cnt_onload == l_image_index.length){
+          manageBtnStatus('removeImgNotReady');
+          changePercentage(100);
+        };
+      });
+      reader.readAsDataURL(blob);
+    }
+  } catch(e) {
+    console.log(e);
+    raiseErrMsg('クリップボードから画像を読み取れませんでした。ブラウザが非対応の可能性があります。');
+  }
+};
 function toggleOutputImageSize(e) {
   let outputImage = document.getElementById('outputImage');
   if (outputImage.classList.contains('full-width-image')) {
@@ -100,13 +144,13 @@ function manageBtnStatus(action) {
   }
 };
 function photoPreview(event, fs = null) {
-  var files = fs;
+  let files = fs;
   if(files === null){
     files = event.target.files;
   }
-  var cnt_onload = 0;
+  let cnt_onload = 0;
   for (i = 0; i < files.length; i++) {
-    var reader = new FileReader();
+    let reader = new FileReader();
     reader.onload = (function(e) {
       addPhoto(e);
       ++cnt_onload;
@@ -257,5 +301,6 @@ window.onload = function () {
       fileInput.files = files;
       photoPreview('onChange',files);
   });
+  document.getElementById('btnUploadFromClipboard').addEventListener('click', addPhotoFromClipBoard, false);
   document.getElementById('outputImage').addEventListener('click', toggleOutputImageSize, false);
 };

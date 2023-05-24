@@ -61,14 +61,15 @@
       <section id="top">
         <form method="post" enctype="multipart/form-data">
           <div id="dragDropArea">
-              <div class="drag-drop-inside">
-                  <p class="drag-drop-info">ここにファイルをドロップ</p>
-                  <p>または</p>
-                  <p class="drag-drop-buttons">
-                      <input id="fileInput" type="file" accept="image/*" multiple="multiple" value="ファイルを選択" name="photo" onChange="photoPreview(event)">
-                  </p>
-                  <p>自動で並び替えるので順番は気にしなくてOK！</p>
-              </div>
+            <div class="drag-drop-inside">
+              <p class="drag-drop-info">ここにファイルをドロップ</p>
+              <p></p>
+              <p class="drag-drop-buttons">
+                or <input id="fileInput" type="file" accept="image/*" multiple="multiple" value="ファイルを選択" name="photo" onChange="photoPreview(event)">
+              </p>
+              <p id="uiUploadFromClipboard">or <button type="button" id="btnUploadFromClipboard">クリップボードから貼り付け</button></p>
+              <p>自動で並び替えるので順番は気にしなくてOK！</p>
+            </div>
           </div>
           <div id="previewArea">
             <div class="container">
@@ -121,6 +122,7 @@
             Ver1.0：初公開<br>
             Ver1.01：隣接画像検出ロジック修正<br>
             Ver1.02：出力結果の表示サイズ切り替え機能追加、閉じるボタン複数検出時の挙動修正<br>
+            Ver1.1：クリップボードからの画像読み込みに対応<br>
           </p>
         </div>
       </section>
