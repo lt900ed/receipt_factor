@@ -534,8 +534,6 @@ div.icon--twitter::after{
   font-size: 1.4em;
   margin-top: 4px;
 }
-#dragDropArea .drag-drop-buttons{
-}
 #dragDropArea input, button{
   font-size: .9em;
   margin: auto;
