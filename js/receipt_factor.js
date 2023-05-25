@@ -502,7 +502,7 @@ function generateReceipt(l_mat) {
       // 縦に連結して出力
       let tmp_dst_vcon = new cv.Mat();
       cv.vconcat(imgs_part, tmp_dst_vcon);
-      imgs_tmp.push_back(tmp_dst_vcon);
+      imgs_tmp.push_back(tmp_dst_vcon.clone());
       // メモリ解放
       tmp_dst_vcon.delete();
       imgs_part.delete();
@@ -510,34 +510,23 @@ function generateReceipt(l_mat) {
 
     // 横に連結準備
     let min_width = Math.min(...[...Array(imgs_tmp.size()).keys()].map((d) => imgs_tmp.get(d).cols));
-    let imgs_equal_width = new cv.MatVector();
+    let max_height = Math.max(...[...Array(imgs_tmp.size()).keys()].map((d) => imgs_tmp.get(d).rows));
     [...Array(imgs_tmp.size()).keys()].forEach(function(i){
-      imgs_equal_width.push_back(cv2_resize_fixed_aspect(imgs_tmp.get(i), min_width, -1))
-    });
-    imgs_tmp.delete()
-    let max_height = Math.max(...[...Array(imgs_equal_width.size()).keys()].map((d) => imgs_equal_width.get(d).rows));
-    [...Array(imgs_equal_width.size()).keys()].forEach(function(i){
-      if (max_height > imgs_equal_width.get(i).rows) {
-        let r = max_height - imgs_equal_width.get(i).rows;
-        let img_white = cv.matFromArray(r, min_width, cv.CV_8UC3, new Array(r * min_width * 3).fill(255));
-        let mv_tmp = new cv.MatVector();
-        tmp_dst_vcon = new cv.Mat();
-        mv_tmp.push_back(imgs_equal_width.get(i));
-        mv_tmp.push_back(img_white);
-        cv.vconcat(mv_tmp, tmp_dst_vcon);
+      if (max_height > imgs_tmp.get(i).rows) {
+        let r = max_height - imgs_tmp.get(i).rows;
+        let tmp_dst_vcon = new cv.Mat();
+        let s = new cv.Scalar(255, 255, 255);
+        cv.copyMakeBorder(imgs_tmp.get(i), tmp_dst_vcon, 0, r, 0, 0, cv.BORDER_CONSTANT, s);
         imgs_out.push_back(tmp_dst_vcon);
-        img_white.delete();
-        mv_tmp.delete();
         tmp_dst_vcon.delete();
       } else {
-        imgs_out.push_back(imgs_equal_width.get(i));
+        imgs_out.push_back(imgs_tmp.get(i));
       }
     });
 
-
     let dst = new cv.Mat();
+    // dst = l_mat[0];
     cv.hconcat(imgs_out, dst);
-    // dst = hconcat_resize_min(imgs.map((d) => {return d.scroll_with_header}));
     // dst = imgs_out.get(0);
     // メモリ解放
     imgs.forEach(function(i){
@@ -545,7 +534,7 @@ function generateReceipt(l_mat) {
         i[p].delete();
       })
     });
-    imgs_equal_width.delete();
+    imgs_tmp.delete();
     imgs_out.delete();
     resolve(dst);
   })
