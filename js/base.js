@@ -181,7 +181,7 @@ function photoPreview(event, fs = null) {
   };
 };
 async function generatePhoto() {
-  // try {
+  try {
     // なんか長辺が2175pxより大きいとMatchShapesでエラーになるので予め小さくしとく
     const limit_px = 2175;
     if (document.getElementById('btnSubmit').classList.contains('imgNotReady')) {
@@ -239,11 +239,11 @@ async function generatePhoto() {
       l_mat.forEach(function(m){m.delete();});
       dst.forEach(function(m){m.delete();});
     }
-  // } catch(e) {
-  //   console.log(e);
-  //   raiseErrMsg(e.message);
-  //   document.getElementById('loading').classList.add('hidden');
-  // }
+  } catch(e) {
+    console.log(e);
+    raiseErrMsg(e.message);
+    document.getElementById('loading').classList.add('hidden');
+  }
 };
 function resetPhoto() {
   try {
