@@ -37,7 +37,7 @@ const thres_gray = 240;
 const thres_cont_close = 0.1;
 const thres_match_tmpl = 0.92;
 const thres_match_tmpl_basic_info = 0.85;
-const thres_match_tmpl_higher = 0.65;
+const thres_match_tmpl_higher = 0.55;
 const thres_header = 0.9;
 
 //パラメータ
@@ -232,18 +232,18 @@ function detect_rects(img_in) {
   // 発見したヘッダー開始位置に合わせてrect_closeを調整
   let height_act = rect_whole.whole.height - (y_act - rect_whole.whole.y)
   let act_rate = height_act / rect_whole.whole.height
-  console.log(rect_close);
+  // console.log(rect_close);
   rect_close = {
     'x': rect_close.x + (rect_close.width * (1 - act_rate)) / 2,
     'y': rect_close.y + (rect_close.height * (1 - act_rate)) / 2,
     'width': rect_close.width * act_rate,
     'height': rect_close.height * act_rate,
   };
-  console.log(rect_close);
+  // console.log(rect_close);
   // 枠座標を再計算
   rects = calc_rects(rect_close, rect_prop);
-  console.log(rect_whole.whole);
-  console.log(rects.whole);
+  // console.log(rect_whole.whole);
+  // console.log(rects.whole);
   if (!(
       0 <= rects.whole.x &&
       0 <= rects.whole.y &&
@@ -398,7 +398,7 @@ function generateReceipt(l_mat) {
               tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows - dist)).clone();
             }
             let tmp_res = match_tmpl_min_max_loc(tmp_img_tgt, tmp_img_tmpl);
-            // console.log(i, j, tmp_res.maxVal);
+            // console.log(i, j, res.maxVal, tmp_res.maxVal, dist);
             if (thres_match_tmpl_higher < tmp_res.maxVal) {
               arr_val[Math.min(i, j)][Math.max(i, j)] = res.maxVal;
               arr_loc[Math.min(i, j)][Math.max(i, j)] = dist;
