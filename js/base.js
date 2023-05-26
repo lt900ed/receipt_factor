@@ -123,6 +123,8 @@ function outputMatVectorList2Canvas(l_mv, canvas_element) {
   let h = Math.max(...l_mv.map((d) => [...Array(d.size()).keys()].map((f) => d.get(f).rows).reduce((sum, element) => sum + element, 0)));
   canvas_element.width = w;
   canvas_element.height = h;
+  canvas_element.getContext('2d').fillStyle = 'rgb(255, 255, 255)';
+  canvas_element.getContext('2d').fillRect(0, 0, canvas_element.width, canvas_element.height);
   let draw_x = 0;
   for (let x = 0; x < l_mv.length; x++) {
     let draw_y = 0;
