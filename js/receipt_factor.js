@@ -14,7 +14,7 @@ const x_narrow = 218;
 const x_params = 215;
 const rect_prop = {
   close: [539, 1828, 458, 132],
-  whole: [x_full, 51, width_full, 1950],
+  whole: [x_full, 51, width_full, 1910],
   scroll: [x_narrow, 947, width_narrow, 831],
   bottom_row: [x_narrow, 1695, width_narrow, 80],
   icon: [347, 235, 150, 150],
