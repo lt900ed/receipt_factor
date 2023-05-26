@@ -376,7 +376,7 @@ function generateReceipt(l_mat) {
     }
     imgs.forEach(function(img_tmpl, i){
       // changePercentage(10 + i);
-      console.log(i + 1, '/', imgs.length);
+      console.log((i + 1) +  '/' + imgs.length);
       imgs.forEach(function(img_tgt, j){
         // 同じ画像ではなく、かつ同じグループだったら比較開始
         if (i != j && l_group[i] == l_group[j]) {
@@ -466,8 +466,7 @@ function generateReceipt(l_mat) {
     })
 
     // グループ毎に縦に繋げて最後に横につなげる
-    let imgs_tmp = new cv.MatVector();
-    let imgs_out = new cv.MatVector();
+    let imgs_tmp = [];
     [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
       // 今のグループに属する画像のインデックス一覧を取得
       let l_index = [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] != null);
@@ -499,43 +498,19 @@ function generateReceipt(l_mat) {
           imgs_part.push_back(imgs[i].scroll_full_width);
         });
       }
-      // 縦に連結して出力
-      let tmp_dst_vcon = new cv.Mat();
-      cv.vconcat(imgs_part, tmp_dst_vcon);
-      imgs_tmp.push_back(tmp_dst_vcon.clone());
+      // 出力用配列に格納
+      imgs_tmp.push(imgs_part.clone());
       // メモリ解放
-      tmp_dst_vcon.delete();
       imgs_part.delete();
     });
 
-    // 横に連結準備
-    let min_width = Math.min(...[...Array(imgs_tmp.size()).keys()].map((d) => imgs_tmp.get(d).cols));
-    let max_height = Math.max(...[...Array(imgs_tmp.size()).keys()].map((d) => imgs_tmp.get(d).rows));
-    [...Array(imgs_tmp.size()).keys()].forEach(function(i){
-      if (max_height > imgs_tmp.get(i).rows) {
-        let r = max_height - imgs_tmp.get(i).rows;
-        let tmp_dst_vcon = new cv.Mat();
-        let s = new cv.Scalar(255, 255, 255);
-        cv.copyMakeBorder(imgs_tmp.get(i), tmp_dst_vcon, 0, r, 0, 0, cv.BORDER_CONSTANT, s);
-        imgs_out.push_back(tmp_dst_vcon);
-        tmp_dst_vcon.delete();
-      } else {
-        imgs_out.push_back(imgs_tmp.get(i));
-      }
-    });
-
-    let dst = new cv.Mat();
-    // dst = l_mat[0];
-    cv.hconcat(imgs_out, dst);
-    // dst = imgs_out.get(0);
     // メモリ解放
     imgs.forEach(function(i){
       load_parts.forEach(function(p){
         i[p].delete();
       })
     });
-    imgs_tmp.delete();
-    imgs_out.delete();
-    resolve(dst);
+    // 上下左右連結は外側で
+    resolve(imgs_tmp);
   })
 }

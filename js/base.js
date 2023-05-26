@@ -120,7 +120,7 @@ function toggleOutputImageSize(e) {
 };
 function outputMatVectorList2Canvas(l_mv, canvas_element) {
   let w = l_mv.reduce((sum, element) => sum + element.get(0).cols, 0);
-  let h = Math.max(...l_mv.map((d) => [...Array(d.size()).keys()].map((e) => d.get(e).cols).reduce((sum, element) => sum + element, 0)));
+  let h = Math.max(...l_mv.map((d) => [...Array(d.size()).keys()].map((f) => d.get(f).rows).reduce((sum, element) => sum + element, 0)));
   canvas_element.width = w;
   canvas_element.height = h;
   let draw_x = 0;
@@ -129,7 +129,7 @@ function outputMatVectorList2Canvas(l_mv, canvas_element) {
     for (let y = 0; y < l_mv[x].size(); y++) {
       let tmpCanvasElement = document.createElement('canvas');
       tmpCanvasElement.setAttribute('id', 'canvasOutput' + x + y);
-      cv.imshow('canvasOutput' + x + y, l_mv[x].get(y));
+      cv.imshow(tmpCanvasElement, l_mv[x].get(y));
       canvas_element.getContext('2d').drawImage(tmpCanvasElement, draw_x, draw_y);
       tmpCanvasElement.remove();
       draw_y += l_mv[x].get(y).rows;
@@ -181,7 +181,7 @@ function photoPreview(event, fs = null) {
   };
 };
 async function generatePhoto() {
-  try {
+  // try {
     // なんか長辺が2175pxより大きいとMatchShapesでエラーになるので予め小さくしとく
     const limit_px = 2175;
     if (document.getElementById('btnSubmit').classList.contains('imgNotReady')) {
@@ -221,7 +221,8 @@ async function generatePhoto() {
         tmpCanvasElement.classList.add('hidden');
         document.getElementById('overview').appendChild(tmpCanvasElement);
       }
-      cv.imshow('canvasOutput', dst);
+      outputMatVectorList2Canvas(dst, tmpCanvasElement);
+      // cv.imshow('canvasOutput', dst);
 
       //img要素に出力
       let outputImage = document.getElementById('outputImage');
@@ -236,13 +237,13 @@ async function generatePhoto() {
       document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
       // メモリ解放
       l_mat.forEach(function(m){m.delete();});
-      dst.delete();
+      dst.forEach(function(m){m.delete();});
     }
-  } catch(e) {
-    console.log(e);
-    raiseErrMsg(e.message);
-    document.getElementById('loading').classList.add('hidden');
-  }
+  // } catch(e) {
+  //   console.log(e);
+  //   raiseErrMsg(e.message);
+  //   document.getElementById('loading').classList.add('hidden');
+  // }
 };
 function resetPhoto() {
   try {
