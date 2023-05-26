@@ -118,6 +118,25 @@ function toggleOutputImageSize(e) {
     outputImage.classList.add('full-width-image');
   }
 };
+function outputMatVectorList2Canvas(l_mv, canvas_element) {
+  let w = l_mv.reduce((sum, element) => sum + element.get(0).cols, 0);
+  let h = Math.max(...l_mv.map((d) => [...Array(d.size()).keys()].map((e) => d.get(e).cols).reduce((sum, element) => sum + element, 0)));
+  canvas_element.width = w;
+  canvas_element.height = h;
+  let draw_x = 0;
+  for (let x = 0; x < l_mv.length; x++) {
+    let draw_y = 0;
+    for (let y = 0; y < l_mv[x].size(); y++) {
+      let tmpCanvasElement = document.createElement('canvas');
+      tmpCanvasElement.setAttribute('id', 'canvasOutput' + x + y);
+      cv.imshow('canvasOutput' + x + y, l_mv[x].get(y));
+      canvas_element.getContext('2d').drawImage(tmpCanvasElement, draw_x, draw_y);
+      tmpCanvasElement.remove();
+      draw_y += l_mv[x].get(y).rows;
+    }
+    draw_x += l_mv[x].get(0).cols;
+  }
+};
 function manageBtnStatus(action) {
   var btnSubmit = document.getElementById('btnSubmit');
   var btnReset = document.getElementById('btnReset');
