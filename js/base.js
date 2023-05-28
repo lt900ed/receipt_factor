@@ -125,11 +125,15 @@ function drawMat2Canvas(mat, canvas_element, x, y) {
   canvas_element.getContext('2d').drawImage(tmpCanvasElement, x, y);
   tmpCanvasElement.remove();
 }
-function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element) {
-  const show_header = false;
+function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element, show_header) {
   const show_close = false;
   const n_group = Math.max(...l_group) + 1;
-  const w_one_col = imgs[0].scroll_with_header.cols;
+  let w_one_col = 0;
+  if (show_header) {
+    w_one_col = imgs[0].header.cols;
+  } else {
+    w_one_col = imgs[0].scroll.cols;
+  }
   let l_h_header = new Array(n_group).fill(0);
   let l_max_rh = new Array(n_group).fill(0);
   let w = n_group * w_one_col;
@@ -139,7 +143,7 @@ function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element
     if (show_header) {
       // ヘッダー分の高さを加算
       let img_header = imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == 0)[0];
-      tmp_h += img_header.scroll_with_header.rows - img_header.scroll_full_width.rows;
+      tmp_h += img_header.header.rows + img_header.basic_info.rows + img_header.tab.rows;
       l_h_header[current_group] = tmp_h;
     }
     // 一番下の画像の相対座標を加算
@@ -156,18 +160,20 @@ function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element
   console.log(w, h);
   canvas_element.width = w;
   canvas_element.height = h;
-  canvas_element.getContext('2d').fillStyle = 'rgb(255, 255, 255)';
+  canvas_element.getContext('2d').fillStyle = 'rgb(242, 242, 242)';
   canvas_element.getContext('2d').fillRect(0, 0, canvas_element.width, canvas_element.height);
   imgs.forEach(function(img, i) {
     let current_group = l_group[i];
     if (show_header && l_relative_height[i] == 0) {
       // ヘッダーを描画
       console.log(i, current_group, current_group * w_one_col, 0);
-      drawMat2Canvas(img.scroll_with_header, canvas_element, current_group * w_one_col, 0);
-    } else {
-      console.log(i, current_group, current_group * w_one_col, l_h_header[current_group] + l_relative_height[i]);
-      drawMat2Canvas(img.scroll_full_width, canvas_element, current_group * w_one_col, l_h_header[current_group] + l_relative_height[i]);
+      drawMat2Canvas(img.header, canvas_element, current_group * w_one_col, 0);
+      drawMat2Canvas(img.basic_info, canvas_element, current_group * w_one_col, img.header.rows);
+      drawMat2Canvas(img.tab, canvas_element, current_group * w_one_col, img.header.rows + img.basic_info.rows);
     }
+    // スクロール部分を描画
+    console.log(i, current_group, current_group * w_one_col, l_h_header[current_group] + l_relative_height[i]);
+    drawMat2Canvas(img.scroll, canvas_element, current_group * w_one_col, l_h_header[current_group] + l_relative_height[i]);
     if (show_close && l_relative_height[i] == l_max_rh[current_group]) {
       // 閉じるボタンを描画
       console.log('未実装');
@@ -284,7 +290,7 @@ async function generatePhoto() {
       tmpCanvasElement.classList.add('hidden');
       document.getElementById('overview').appendChild(tmpCanvasElement);
     }
-    outputPartsList2Canvas(imgs, l_group, l_relative_height, tmpCanvasElement);
+    outputPartsList2Canvas(imgs, l_group, l_relative_height, tmpCanvasElement, document.getElementById('showHeader').checked);
 
     //img要素に出力
     let outputImage = document.getElementById('outputImage');

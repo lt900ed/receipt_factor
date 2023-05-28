@@ -76,6 +76,27 @@
               <!-- <div class="containerItem"><div class="functionWrap"><div class="icon--cross"></div></div><img class="previewImage" src="./img/ss/01803.png"></div> -->
             </div>
           </div>
+          <div id="formOption">
+            <div class="formItem">
+              <!-- <label>オプション</label> -->
+              <div class="inputWrap">
+                <ul>
+                  <li>
+                    <div class="considerWrap">
+                      <input type="checkbox" class="checkInput" id="showHeader" checked>
+                      <label class="checkLabel" for="showHeader">ヘッダーの表示</label>
+                    </div>
+                  </li>
+                  <!-- <li>
+                    <div class="considerWrap">
+                      <input type="checkbox" class="checkInput" id="considerEquips">
+                      <label class="checkLabel" for="considerEquips">閉じるボタン</label>
+                    </div>
+                  </li> -->
+                </ul>
+              </div>
+            </div>
+          </div>
           <div class="buttonArea">
             <button id="btnSubmit" type="button" class="btn disable cvNotReady imgNotReady" name="submit" value="作成" onclick="generatePhoto();return false;">作成</button>
             <button id="btnReset" type="button" class="btn disable weak imgNotReady" name="cancel" value="リセット" onclick="location.reload();return false;">リセット</button>
@@ -95,7 +116,7 @@
       </section>
       <hr>
       <section id="howto">
-        <label>使い方</label>
+        <h3>使い方</h3>
         <div class="markdown-body editormd-preview-container" id=memo_text>
           <p>1.殿堂入りウマ娘の詳細画面をスクロールしながらスクリーンショットを撮る<br>
           ・スキル、継承、育成情報タブいずれも対応しています。<br>
@@ -122,7 +143,7 @@
       </section>
       <hr>
       <section id="updateLog">
-        <label>アップデート履歴</label>
+        <h3>アップデート履歴</h3>
         <div class="markdown-body editormd-preview-container">
           <p>
             Ver1.0：初公開<br>

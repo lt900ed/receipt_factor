@@ -726,10 +726,9 @@ div.icon--twitter::after{
   text-align: left;
   background-color: #fff;
 }
-label{
+h3{
   display: block;
   font-size: 18px;
-  line-height: 18px;
   margin-top: 1rem;
   margin-bottom: .5rem;
 }
@@ -756,4 +755,84 @@ label{
 }
 .full-width-image{
   max-width: inherit;
+}
+#formOption {
+  display: flex;
+  flex-direction: column;
+}
+.considerWrap{
+  display: inline-block;
+}
+.checkLabel{
+  border-radius: .5rem;
+  padding: .5rem 1rem;
+  margin: .2rem;
+  cursor: pointer;
+  font-size: 14px;
+  color: black;
+}
+.checkInput{
+  display: none;
+}
+.checkLabel {
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-block;
+  padding: 5px 5px 5px 30px;
+  position: relative;
+  width: auto;
+}
+.checkLabel::before {
+  background: #fff;
+  border: 1px solid #44d900;
+  border-radius: 3px;
+  content: '';
+  display: block;
+  height: 16px;
+  left: 5px;
+  margin-top: -8px;
+  position: absolute;
+  top: 50%;
+  width: 16px;
+}
+.checkLabel::after {
+  border-right: 5px solid #44d900;
+  border-bottom: 3px solid #44d900;
+  content: '';
+  display: block;
+  height: 20px;
+  left: 7px;
+  margin-top: -16px;
+  opacity: 0;
+  position: absolute;
+  top: 50%;
+  transform: rotate(45deg);
+  width: 9px;
+}
+input[type=checkbox]:checked + .checkLabel::before {
+  border-color: #44d900;
+}
+input[type=checkbox]:checked + .checkLabel::after {
+  opacity: 1;
+}
+.formItem {
+  display: flex;
+  flex-direction: row;
+  margin: 0.4rem 0;
+  justify-content: center;
+}
+.formItem > label {
+  font-size: 18px;
+  flex: 0 0 9rem;
+}
+.inputWrap {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.inputWrap ul {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
 }

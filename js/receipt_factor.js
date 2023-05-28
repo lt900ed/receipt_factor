@@ -42,7 +42,7 @@ const thres_header = 0.9;
 
 //パラメータ
 const force_one_group = false;
-const load_parts = ['scroll_with_header', 'scroll_full_width', 'scroll', 'bottom_row', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
+const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll', 'bottom_row', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
 const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
 
 function vconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
