@@ -375,17 +375,17 @@ function get_group_list(imgs) {
     resolve(l_group);
   })
 }
-function generateReceipt(imgs, l_group) {
+function match_cross(imgs, l_group) {
   return new Promise(function(resolve){
     console.log('グループ内でテンプレートマッチ')
     const n_tgt = imgs.length;
     // グループ内でテンプレートマッチ
     // 結果格納用配列初期化
-    arr_val = new Array(n_tgt);
+    let arr_val = new Array(n_tgt);
     for(let y = 0; y < n_tgt; y++) {
       arr_val[y] = new Array(n_tgt).fill(0.0);
     }
-    arr_loc = new Array(n_tgt);
+    let arr_loc = new Array(n_tgt);
     for(let y = 0; y < n_tgt; y++) {
       arr_loc[y] = new Array(n_tgt).fill(0.0);
     }
@@ -426,12 +426,18 @@ function generateReceipt(imgs, l_group) {
     })
     // arr_val.forEach(function(r){console.log(r)});
     // arr_loc.forEach(function(r){console.log(r)});
-
-    // changePercentage(90);
+    resolve([arr_val, arr_loc]);
+  })
+}
+function get_relative_dist(arrs, l_group) {
+  return new Promise(function(resolve){
+    let arr_val = arrs[0];
+    let arr_loc = arrs[1];
+    const n_tgt = arr_val.length;
     console.log('各グループの先頭画像からの相対距離を算出')
     // 各グループの先頭画像からの相対距離を算出
-    let relative_height = new Array(n_tgt).fill(null);
-    relative_height[0] = 0;
+    let l_relative_height = new Array(n_tgt).fill(null);
+    l_relative_height[0] = 0;
     let l_relative_height_score = new Array(n_tgt).fill(0.0);
     let l_isfinished = new Array(n_tgt).fill(false);
     let n_finished_before = -1;
@@ -446,22 +452,22 @@ function generateReceipt(imgs, l_group) {
           if (l_group[y] == current_group) {
             // 各グループ先頭の画像を基準とする
             if (!is_group_initialized) {
-              relative_height[y] = 0;
+              l_relative_height[y] = 0;
               l_relative_height_score[y] = 1;
               is_group_initialized = true;
             }
             // 相対座標が決まってたら、まだ決まってない他の画像に波及開始
-            if (!l_isfinished[y] && relative_height[y] != null) {
+            if (!l_isfinished[y] && l_relative_height[y] != null) {
               [...Array(n_tgt).keys()].forEach(function(i){
                 [...Array(n_tgt).keys()].forEach(function(j){
                   if (arr_loc[i][j] != 0 && l_group[i] == current_group && l_group[j] == current_group) {
                     let tmp_relative_height_score = Math.min(l_relative_height_score[y], arr_val[i][j]);
                     if (i < y && j == y && l_relative_height_score[i] < tmp_relative_height_score) {
-                      relative_height[i] = relative_height[y] - arr_loc[i][j];
+                      l_relative_height[i] = l_relative_height[y] - arr_loc[i][j];
                       l_relative_height_score[i] = tmp_relative_height_score;
                       l_isfinished[i] = false;
                     } else if (i == y && j > y && l_relative_height_score[j] < tmp_relative_height_score) {
-                      relative_height[j] = relative_height[y] + arr_loc[i][j];
+                      l_relative_height[j] = l_relative_height[y] + arr_loc[i][j];
                       l_relative_height_score[j] = tmp_relative_height_score;
                       l_isfinished[j] = false;
                     }
@@ -479,14 +485,20 @@ function generateReceipt(imgs, l_group) {
         }
       }
     })
+    resolve(l_relative_height);
+  })
+}
+function generateReceipt(imgs, l_group, l_relative_height) {
+  return new Promise(function(resolve){
+    const n_tgt = imgs.length;
 
     // グループ毎に縦に繋げて最後に横につなげる
     let imgs_tmp = [];
     [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
       // 今のグループに属する画像のインデックス一覧を取得
-      let l_index = [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] != null);
+      let l_index = [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && l_relative_height[d] != null);
       // 相対座標が低い順にソート
-      l_index.sort((first, second) => relative_height[first] - relative_height[second]);
+      l_index.sort((first, second) => l_relative_height[first] - l_relative_height[second]);
       let imgs_part = new cv.MatVector();
       let is_header = true;
       let relative_height_before = 0;
@@ -495,21 +507,21 @@ function generateReceipt(imgs, l_group) {
         if (is_header) {
           imgs_part.push_back(imgs[i].scroll_with_header);
           is_header = false;
-          relative_height_before = relative_height[i];
+          relative_height_before = l_relative_height[i];
         } else {
           let img_tmp = imgs[i].scroll_full_width;
-          let y = Math.floor(imgs[i].scroll.rows - (relative_height[i] - relative_height_before));
+          let y = Math.floor(imgs[i].scroll.rows - (l_relative_height[i] - relative_height_before));
           let tmp_rect = new cv.Rect(0, y, img_tmp.cols, img_tmp.rows - y);
           let img_tmp_part = img_tmp.roi(tmp_rect);
           imgs_part.push_back(img_tmp_part.clone());
-          relative_height_before = relative_height[i];
+          relative_height_before = l_relative_height[i];
           img_tmp_part.delete();
         }
       });
       // はぐれがいたら末尾にトリミングなしで追加
-      if ([...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] == null).length > 0) {
+      if ([...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && l_relative_height[d] == null).length > 0) {
         raiseNormalMsg('重なり方を検出出来ない画像があったため一部取り込み順に単純連結している箇所があります。');
-        [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && relative_height[d] == null).forEach(function(i){
+        [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && l_relative_height[d] == null).forEach(function(i){
           imgs_part.push_back(imgs[i].scroll_full_width);
         });
       }

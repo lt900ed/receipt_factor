@@ -221,7 +221,15 @@ async function generatePhoto() {
     let l_group = await get_group_list(imgs);
     changePercentage(30);
     await repaint();
-    let dst = await generateReceipt(imgs, l_group);
+    let arrs = await match_cross(imgs, l_group);
+    changePercentage(80);
+    await repaint();
+    let l_relative_height = await get_relative_dist(arrs, l_group);
+    changePercentage(90);
+    await repaint();
+    let dst = await generateReceipt(imgs, l_group, l_relative_height);
+    changePercentage(95);
+    await repaint();
     if (!(typeof dst === "undefined")) {
       // 画像出力
       let tmpCanvasElement = document.getElementById('canvasOutput');
