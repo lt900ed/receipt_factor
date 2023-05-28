@@ -221,15 +221,26 @@ async function generatePhoto() {
     let l_group = await get_group_list(imgs);
     changePercentage(30);
     await repaint();
-    let arrs = await match_cross(imgs, l_group);
-    changePercentage(80);
-    await repaint();
-    let l_relative_height = await get_relative_dist(arrs, l_group);
+
+    console.log('グループ内でテンプレートマッチ')
+    const n_tgt = imgs.length;
+    // 結果格納用配列初期化
+    let arr_val = new Array(n_tgt);
+    for (let y = 0; y < n_tgt; y++) {arr_val[y] = new Array(n_tgt).fill(0.0);}
+    let arr_loc = new Array(n_tgt);
+    for (let y = 0; y < n_tgt; y++) {arr_loc[y] = new Array(n_tgt).fill(0.0);}
+    // グループ内でテンプレートマッチ
+    for (let i = 0; i < n_tgt; i++) {
+      console.log((i + 1) +  '/' + n_tgt);
+      await match_one_line(imgs, l_group, arr_val, arr_loc, i);
+      changePercentage(30 + (50 / n_tgt) * i);
+      await repaint();
+    }
+
+    let l_relative_height = await get_relative_dist(arr_val, arr_loc, l_group);
     changePercentage(90);
     await repaint();
     let dst = await generateReceipt(imgs, l_group, l_relative_height);
-    changePercentage(95);
-    await repaint();
     if (!(typeof dst === "undefined")) {
       // 画像出力
       let tmpCanvasElement = document.getElementById('canvasOutput');
