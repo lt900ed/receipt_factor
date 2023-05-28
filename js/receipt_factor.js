@@ -281,19 +281,25 @@ function detect_rects(img_in) {
   l_tmpl_contours_only_large.forEach(function(c){c.delete()});
   return rects;
 }
-
-function generateReceipt(l_mat) {
+function get_rects(l_mat) {
   return new Promise(function(resolve){
     const n_tgt = l_mat.length;
-    console.log(l_mat.length, l_mat[0].rows, l_mat[0].cols);
+    console.log('閉じるボタン位置取得');
+    console.log('枚数:', l_mat.length, '1枚目のheight,width:', l_mat[0].rows, l_mat[0].cols);
     let l_rects = [];
     let tmp_rects = {};
     for (let i = 0; i < l_mat.length; i++) {
       // 画像毎に閉じるボタンの検出と枠座標取得
       tmp_rects = detect_rects(l_mat[i]);
       l_rects.push(tmp_rects);
-      // cv2_rectangle(l_mat[i], l_rects[i].whole, new cv.Scalar(255, 0, 0), 10);
     }
+    resolve(l_rects);
+  })
+}
+function trim_parts(l_mat, l_rects) {
+  return new Promise(function(resolve){
+    console.log('閉じるボタンを基準に各パーツ切り出し');
+    const n_tgt = l_mat.length;
     // パーツ毎の最小サイズを算出
     let tgt_sizes = {};
     load_parts.forEach(function(p){
@@ -317,7 +323,13 @@ function generateReceipt(l_mat) {
       });
       imgs.push(obj_tmp);
     });
-
+    resolve(imgs);
+  })
+}
+function get_group_list(imgs) {
+  return new Promise(function(resolve){
+    console.log('入力画像をグループ分け');
+    const n_tgt = imgs.length;
     // グループ決め
     let l_group = [];
     if (force_one_group) {
@@ -332,7 +344,6 @@ function generateReceipt(l_mat) {
       for(let y = 0; y < n_tgt; y++) {
         arr_val[y] = new Array(n_tgt).fill(1.0);
       }
-
       // アイコン等からグループ決め
       // 全組み合わせでテンプレートマッチ
       imgs.forEach(function(img_tmpl, i){
@@ -361,9 +372,13 @@ function generateReceipt(l_mat) {
       })
     };
     // console.log(l_group);
-
-    // changePercentage(10);
+    resolve(l_group);
+  })
+}
+function generateReceipt(imgs, l_group) {
+  return new Promise(function(resolve){
     console.log('グループ内でテンプレートマッチ')
+    const n_tgt = imgs.length;
     // グループ内でテンプレートマッチ
     // 結果格納用配列初期化
     arr_val = new Array(n_tgt);

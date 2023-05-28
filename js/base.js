@@ -212,7 +212,16 @@ async function generatePhoto() {
       tmpImg.delete();
     };
     // メイン加工関数呼び出し
-    dst = await generateReceipt(l_mat);
+    let l_rects = await get_rects(l_mat);
+    changePercentage(10);
+    await repaint();
+    let imgs = await trim_parts(l_mat, l_rects);
+    changePercentage(20);
+    await repaint();
+    let l_group = await get_group_list(imgs);
+    changePercentage(30);
+    await repaint();
+    let dst = await generateReceipt(imgs, l_group);
     if (!(typeof dst === "undefined")) {
       // 画像出力
       let tmpCanvasElement = document.getElementById('canvasOutput');
