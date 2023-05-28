@@ -543,12 +543,6 @@ function generateReceipt(imgs, l_group, l_relative_height) {
       imgs_part.delete();
     });
 
-    // メモリ解放
-    imgs.forEach(function(i){
-      load_parts.forEach(function(p){
-        i[p].delete();
-      })
-    });
     // 上下左右連結は外側で
     resolve(imgs_tmp);
   })

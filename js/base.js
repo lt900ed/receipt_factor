@@ -118,26 +118,61 @@ function toggleOutputImageSize(e) {
     outputImage.classList.add('full-width-image');
   }
 };
-function outputMatVectorList2Canvas(l_mv, canvas_element) {
-  let w = l_mv.reduce((sum, element) => sum + element.get(0).cols, 0);
-  let h = Math.max(...l_mv.map((d) => [...Array(d.size()).keys()].map((f) => d.get(f).rows).reduce((sum, element) => sum + element, 0)));
+function drawMat2Canvas(mat, canvas_element, x, y) {
+  let tmpCanvasElement = document.createElement('canvas');
+  tmpCanvasElement.setAttribute('id', 'tmpCanvas');
+  cv.imshow(tmpCanvasElement, mat);
+  canvas_element.getContext('2d').drawImage(tmpCanvasElement, x, y);
+  tmpCanvasElement.remove();
+}
+function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element) {
+  const show_header = false;
+  const show_close = false;
+  const n_group = Math.max(...l_group) + 1;
+  const w_one_col = imgs[0].scroll_with_header.cols;
+  let l_h_header = new Array(n_group).fill(0);
+  let l_max_rh = new Array(n_group).fill(0);
+  let w = n_group * w_one_col;
+  let h = 0;
+  [...Array(n_group).keys()].forEach(function(current_group){
+    let tmp_h = 0;
+    if (show_header) {
+      // ヘッダー分の高さを加算
+      let img_header = imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == 0)[0];
+      tmp_h += img_header.scroll_with_header.rows - img_header.scroll_full_width.rows;
+      l_h_header[current_group] = tmp_h;
+    }
+    // 一番下の画像の相対座標を加算
+    l_max_rh[current_group] = Math.max(...l_relative_height.filter((d, i) => l_group[i] == current_group));
+    tmp_h += l_max_rh[current_group];
+    // 一番下の画像の高さを加算
+    tmp_h += imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == l_max_rh[current_group])[0].scroll_full_width.rows;
+    if (show_close) {
+      // 閉じるボタンの高さを加算
+      console.log('未実装');
+    }
+    h = Math.max(h, tmp_h);
+  })
+  console.log(w, h);
   canvas_element.width = w;
   canvas_element.height = h;
   canvas_element.getContext('2d').fillStyle = 'rgb(255, 255, 255)';
   canvas_element.getContext('2d').fillRect(0, 0, canvas_element.width, canvas_element.height);
-  let draw_x = 0;
-  for (let x = 0; x < l_mv.length; x++) {
-    let draw_y = 0;
-    for (let y = 0; y < l_mv[x].size(); y++) {
-      let tmpCanvasElement = document.createElement('canvas');
-      tmpCanvasElement.setAttribute('id', 'canvasOutput' + x + y);
-      cv.imshow(tmpCanvasElement, l_mv[x].get(y));
-      canvas_element.getContext('2d').drawImage(tmpCanvasElement, draw_x, draw_y);
-      tmpCanvasElement.remove();
-      draw_y += l_mv[x].get(y).rows;
+  imgs.forEach(function(img, i) {
+    let current_group = l_group[i];
+    if (show_header && l_relative_height[i] == 0) {
+      // ヘッダーを描画
+      console.log(i, current_group, current_group * w_one_col, 0);
+      drawMat2Canvas(img.scroll_with_header, canvas_element, current_group * w_one_col, 0);
+    } else {
+      console.log(i, current_group, current_group * w_one_col, l_h_header[current_group] + l_relative_height[i]);
+      drawMat2Canvas(img.scroll_full_width, canvas_element, current_group * w_one_col, l_h_header[current_group] + l_relative_height[i]);
     }
-    draw_x += l_mv[x].get(0).cols;
-  }
+    if (show_close && l_relative_height[i] == l_max_rh[current_group]) {
+      // 閉じるボタンを描画
+      console.log('未実装');
+    }
+  })
 };
 function manageBtnStatus(action) {
   var btnSubmit = document.getElementById('btnSubmit');
@@ -240,35 +275,36 @@ async function generatePhoto() {
     let l_relative_height = await get_relative_dist(arr_val, arr_loc, l_group);
     changePercentage(90);
     await repaint();
-    let dst = await generateReceipt(imgs, l_group, l_relative_height);
-    if (!(typeof dst === "undefined")) {
-      // 画像出力
-      let tmpCanvasElement = document.getElementById('canvasOutput');
-      if (!tmpCanvasElement) {
-        // キャンバスがなかったら生成
-        tmpCanvasElement = document.createElement('canvas');
-        tmpCanvasElement.setAttribute('id', 'canvasOutput');
-        tmpCanvasElement.classList.add('hidden');
-        document.getElementById('overview').appendChild(tmpCanvasElement);
-      }
-      outputMatVectorList2Canvas(dst, tmpCanvasElement);
-      // cv.imshow('canvasOutput', dst);
-
-      //img要素に出力
-      let outputImage = document.getElementById('outputImage');
-      outputImage.src = tmpCanvasElement.toDataURL('image/png');
-      outputImage.classList.remove('hidden');
-      // ローディング解除
-      changePercentage(100);
-      // 保存ボタンを出してスクロール
-      document.getElementById('SaveBtnArea').classList.remove('hidden');
-      document.getElementById('outputAreaText').classList.add('hidden');
-      document.getElementById('toggleSizeText').classList.remove('hidden');
-      document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
-      // メモリ解放
-      l_mat.forEach(function(m){m.delete();});
-      dst.forEach(function(m){m.delete();});
+    // 画像出力
+    let tmpCanvasElement = document.getElementById('canvasOutput');
+    if (!tmpCanvasElement) {
+      // キャンバスがなかったら生成
+      tmpCanvasElement = document.createElement('canvas');
+      tmpCanvasElement.setAttribute('id', 'canvasOutput');
+      tmpCanvasElement.classList.add('hidden');
+      document.getElementById('overview').appendChild(tmpCanvasElement);
     }
+    outputPartsList2Canvas(imgs, l_group, l_relative_height, tmpCanvasElement);
+
+    //img要素に出力
+    let outputImage = document.getElementById('outputImage');
+    outputImage.src = tmpCanvasElement.toDataURL('image/png');
+    outputImage.classList.remove('hidden');
+    // ローディング解除
+    changePercentage(100);
+    // 保存ボタンを出してスクロール
+    document.getElementById('SaveBtnArea').classList.remove('hidden');
+    document.getElementById('outputAreaText').classList.add('hidden');
+    document.getElementById('toggleSizeText').classList.remove('hidden');
+    document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
+    // メモリ解放
+    l_mat.forEach(function(m){m.delete();});
+    // dst.forEach(function(m){m.delete();});
+    imgs.forEach(function(i){
+      load_parts.forEach(function(p){
+        i[p].delete();
+      })
+    });
   } catch(e) {
     console.log(e);
     raiseErrMsg(e.message);
