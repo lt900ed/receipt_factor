@@ -489,6 +489,13 @@ function get_relative_dist(arr_val, arr_loc, l_group) {
           break;
         }
       }
+      // 最も上の画像に対する相対座標に変換
+      let min_relative_height = Math.min(...l_relative_height.filter((d, i) => l_group[i] == current_group));
+      for (let i = 0; i < l_relative_height.length; i++) {
+        if(l_group[i] == current_group) {
+          l_relative_height[i] -= min_relative_height;
+        }
+      }
     })
     resolve(l_relative_height);
   })
