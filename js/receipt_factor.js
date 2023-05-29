@@ -20,6 +20,8 @@ const rect_prop = {
   icon: [347, 235, 150, 150],
   eval_val: [357, 427, 133, 37],
   speed_val: [315, 556, 103, 37],
+  growth_rate: [240, 848, 89, 34],
+  register_partner: [541, 880, 454, 129],
 };
 rect_prop['bottom_row_higher'] = [rect_prop['bottom_row'][0], rect_prop['bottom_row'][1] - 60, rect_prop['bottom_row'][2], rect_prop['bottom_row'][3] + 60];
 rect_prop['scroll_with_header'] = [rect_prop['whole'][0], rect_prop['whole'][1], rect_prop['whole'][2], rect_prop['scroll'][1] + rect_prop['scroll'][3] - rect_prop['whole'][1]];
@@ -38,6 +40,7 @@ const thres_cont_close = 0.1;
 const thres_match_tmpl = 0.92;
 const thres_match_tmpl_basic_info = 0.85;
 const thres_match_tmpl_higher = 0.55;
+const thres_match_tmpl_rayout_type = 0.6;
 const thres_header = 0.9;
 
 //パラメータ
@@ -211,8 +214,8 @@ function detect_rects(img_in) {
   // ヘッダー辺りで緑っぽいピクセルを抽出
   cv.inRange(
     img_find_header,
-    new cv.Mat(img_find_header.rows, img_find_header.cols, img_find_header.type(), [30, 190, 0, 0]),
-    new cv.Mat(img_find_header.rows, img_find_header.cols, img_find_header.type(), [90, 255, 255, 0]),
+    new cv.Mat(img_find_header.rows, img_find_header.cols, img_find_header.type(), [20, 150, 0, 0]),
+    new cv.Mat(img_find_header.rows, img_find_header.cols, img_find_header.type(), [80, 255, 255, 0]),
     green);
 
   // 上から見ていってほぼ全セルが緑っぽい行(＝ウマ娘詳細ヘッダーの始まり)をy_actに格納
