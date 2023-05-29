@@ -23,16 +23,39 @@ const rect_prop = {
   growth_rate: [240, 848, 89, 34],
   register_partner: [541, 880, 454, 129],
 };
-rect_prop['bottom_row_higher'] = [rect_prop['bottom_row'][0], rect_prop['bottom_row'][1] - 60, rect_prop['bottom_row'][2], rect_prop['bottom_row'][3] + 60];
-rect_prop['scroll_with_header'] = [rect_prop['whole'][0], rect_prop['whole'][1], rect_prop['whole'][2], rect_prop['scroll'][1] + rect_prop['scroll'][3] - rect_prop['whole'][1]];
-rect_prop['scroll_full_width'] = [rect_prop['whole'][0], rect_prop['scroll'][1], rect_prop['whole'][2], rect_prop['scroll'][3]];
 rect_prop['header'] = [rect_prop['whole'][0], rect_prop['whole'][1], rect_prop['whole'][2], 100];
 rect_prop['basic_info'] = [rect_prop['header'][0], rect_prop['header'][1] + rect_prop['header'][3], rect_prop['header'][2], 700];
-rect_prop['tab'] = [rect_prop['basic_info'][0], rect_prop['basic_info'][1] + rect_prop['basic_info'][3], rect_prop['basic_info'][2], 70];
-rect_prop['stamina_val'] = [rect_prop['speed_val'][0] + x_params, rect_prop['speed_val'][1], rect_prop['speed_val'][2], rect_prop['speed_val'][3]];
-rect_prop['power_val'] = [rect_prop['stamina_val'][0] + x_params, rect_prop['speed_val'][1], rect_prop['speed_val'][2], rect_prop['speed_val'][3]];
-rect_prop['guts_val'] = [rect_prop['power_val'][0] + x_params, rect_prop['speed_val'][1], rect_prop['speed_val'][2], rect_prop['speed_val'][3]];
-rect_prop['int_val'] = [rect_prop['guts_val'][0] + x_params, rect_prop['speed_val'][1], rect_prop['speed_val'][2], rect_prop['speed_val'][3]];
+const rect_prop_dynamic = {
+  with_growth_rate: {
+      basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], rect_prop.basic_info[3] + 133],
+      scroll: [x_narrow, rect_prop.scroll[1] + 129, width_narrow, rect_prop.scroll[3] - 129],
+  },
+  with_register_partner: {
+      basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], rect_prop.basic_info[3] + 205],
+      scroll: [x_narrow, rect_prop.scroll[1] + 192, width_narrow, rect_prop.scroll[3] - 192],
+  },
+}
+
+function add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type) {
+  let dict_out = {};
+  Object.keys(rect_prop).forEach(function (key) {
+    dict_out[key] = rect_prop[key];
+  });
+  if (rayout_type != 'normal') {
+    Object.keys(rect_prop_dynamic[rayout_type]).forEach(function (key) {
+      dict_out[key] = rect_prop_dynamic[rayout_type][key];
+    });
+  }
+  dict_out['bottom_row_higher'] = [dict_out['bottom_row'][0], dict_out['bottom_row'][1] - 60, dict_out['bottom_row'][2], dict_out['bottom_row'][3] + 60];
+  dict_out['scroll_with_header'] = [dict_out['whole'][0], dict_out['whole'][1], dict_out['whole'][2], dict_out['scroll'][1] + dict_out['scroll'][3] - dict_out['whole'][1]];
+  dict_out['scroll_full_width'] = [dict_out['whole'][0], dict_out['scroll'][1], dict_out['whole'][2], dict_out['scroll'][3]];
+  dict_out['tab'] = [dict_out['basic_info'][0], dict_out['basic_info'][1] + dict_out['basic_info'][3], dict_out['basic_info'][2], 70];
+  dict_out['stamina_val'] = [dict_out['speed_val'][0] + x_params, dict_out['speed_val'][1], dict_out['speed_val'][2], dict_out['speed_val'][3]];
+  dict_out['power_val'] = [dict_out['stamina_val'][0] + x_params, dict_out['speed_val'][1], dict_out['speed_val'][2], dict_out['speed_val'][3]];
+  dict_out['guts_val'] = [dict_out['power_val'][0] + x_params, dict_out['speed_val'][1], dict_out['speed_val'][2], dict_out['speed_val'][3]];
+  dict_out['int_val'] = [dict_out['guts_val'][0] + x_params, dict_out['speed_val'][1], dict_out['speed_val'][2], dict_out['speed_val'][3]];
+  return dict_out
+}
 
 // しきい値
 const thres_gray = 240;
@@ -131,15 +154,16 @@ function detect_rects(img_in) {
   let ksize = new cv.Size(5, 5);
   cv.GaussianBlur(img_gray, img_gray, ksize, 0, 0, cv.BORDER_DEFAULT);
   cv.threshold(img_gray, img_gray, thres_gray, 255, cv.THRESH_BINARY);
+  let img_gray_half = img_gray.roi(new cv.Rect(0, Math.floor(img_in.rows / 2), img_in.cols, img_in.rows - Math.floor(img_in.rows / 2)));
 
   let mv_contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
   // 入力画像で輪郭抽出
-  cv.findContours(img_gray, mv_contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+  cv.findContours(img_gray_half, mv_contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE, new cv.Point(0, Math.floor(img_in.rows / 2)));
   // 小さい輪郭は除外して再格納
   let mv_contours_only_large = new cv.MatVector();
   for (let i = 0; i < mv_contours.size(); i++) {
-    if (cv.contourArea(mv_contours.get(i)) > (img_gray.cols ** 2) / 80) {
+    if (cv.contourArea(mv_contours.get(i)) > (img_gray_half.cols ** 2) / 80) {
       mv_contours_only_large.push_back(mv_contours.get(i));
     }
   };
@@ -244,7 +268,41 @@ function detect_rects(img_in) {
   };
   // console.log(rect_close);
   // 枠座標を再計算
-  rects = calc_rects(rect_close, rect_prop);
+  let rects_base = calc_rects(rect_close, rect_prop);
+  // レイアウトを取得
+  let rayout_type = 'normal';
+  let img_tgt = img_in.roi(new cv.Rect(rects_base.growth_rate.x - 2, rects_base.growth_rate.y - 2, rects_base.growth_rate.width + 4, rects_base.growth_rate.height + 4));
+  let img_tmpl = cv.imread(document.getElementById('tmplGrowthRate'));
+  cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+  let tmp_dst = new cv.Mat();
+  cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.growth_rate.width, rects_base.growth_rate.height), 0, 0);
+  if (match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal > thres_match_tmpl_rayout_type) {
+    rayout_type = 'with_growth_rate';
+  } else {
+    img_tgt = img_in.roi(new cv.Rect(rects_base.register_partner.x - 2, rects_base.register_partner.y - 2, rects_base.register_partner.width + 4, rects_base.register_partner.height + 4));
+    img_tmpl = cv.imread(document.getElementById('tmplRegisterPartner'));
+    cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+    tmp_dst = new cv.Mat();
+    cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.register_partner.width, rects_base.register_partner.height), 0, 0);
+    if (match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal > thres_match_tmpl_rayout_type) {
+      rayout_type = 'with_register_partner';
+    } else {
+      img_tmpl = cv.imread(document.getElementById('tmplUnregisterPartner'));
+      cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+      tmp_dst = new cv.Mat();
+      cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.register_partner.width, rects_base.register_partner.height), 0, 0);
+      if (match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal > thres_match_tmpl_rayout_type) {
+        rayout_type = 'with_register_partner';
+      }
+    }
+  }
+  img_tgt.delete();
+  img_tmpl.delete();
+  tmp_dst.delete();
+  let rect_prop_added = add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type);
+  let rects = calc_rects(rect_close, rect_prop_added);
+  console.log(rayout_type);
+  console.log(rects);
   // console.log(rect_whole.whole);
   // console.log(rects.whole);
   if (!(
@@ -272,6 +330,7 @@ function detect_rects(img_in) {
 
   // メモリ解放
   img_gray.delete();
+  img_gray_half.delete();
   mv_contours.delete();
   hierarchy.delete();
   mv_contours_only_large.delete();
