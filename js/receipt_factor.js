@@ -163,7 +163,7 @@ function detect_rects(img_in) {
   // 小さい輪郭は除外して再格納
   let mv_contours_only_large = new cv.MatVector();
   for (let i = 0; i < mv_contours.size(); i++) {
-    if (cv.contourArea(mv_contours.get(i)) > (img_gray_half.cols ** 2) / 80) {
+    if (cv.contourArea(mv_contours.get(i)) > (Math.min(img_gray.cols, img_gray.rows) ** 2) / 80) {
       mv_contours_only_large.push_back(mv_contours.get(i));
     }
   };
@@ -182,7 +182,7 @@ function detect_rects(img_in) {
   // 小さい輪郭は除外して配列に再格納
   let l_tmpl_contours_only_large = [];
   for (let i = 0; i < mv_tmpl_contours.size(); i++) {
-    if (cv.contourArea(mv_tmpl_contours.get(i)) > (img_gray.cols ** 2) / 80) {
+    if (cv.contourArea(mv_tmpl_contours.get(i)) > (Math.min(img_gray.cols, img_gray.rows) ** 2) / 80) {
       l_tmpl_contours_only_large.push(mv_tmpl_contours.get(i));
     }
   };
@@ -232,7 +232,7 @@ function detect_rects(img_in) {
   if (y_start + Math.floor(rect_whole.whole.height / 10) > img_in.rows) {
     throw new Error('閉じるボタンが正しく検出出来ない画像があります。');
   }
-  let img_find_header = img_in.roi(new cv.Rect(0, y_start, img_in.cols, Math.floor(rect_whole.whole.height / 10))).clone();
+  let img_find_header = img_in.roi(new cv.Rect(rect_whole.whole.x, y_start, rect_whole.whole.width, Math.floor(rect_whole.whole.height / 10))).clone();
   cv.cvtColor(img_find_header, img_find_header, cv.COLOR_RGB2HSV, 0);
   let green = new cv.Mat()
   // ヘッダー辺りで緑っぽいピクセルを抽出
