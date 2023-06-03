@@ -118,31 +118,32 @@ function toggleOutputImageSize(e) {
     outputImage.classList.add('full-width-image');
   }
 };
-function drawMat2Canvas(mat, canvas_element, x, y) {
+function drawMat2Canvas(mat, canvas_element, x, y, width=-1, height=-1) {
   let tmpCanvasElement = document.createElement('canvas');
   tmpCanvasElement.setAttribute('id', 'tmpCanvas');
   cv.imshow(tmpCanvasElement, mat);
-  canvas_element.getContext('2d').drawImage(tmpCanvasElement, x, y);
+  if (width == -1) {
+    canvas_element.getContext('2d').drawImage(tmpCanvasElement, x, y);
+  } else {
+    canvas_element.getContext('2d').drawImage(tmpCanvasElement, x, y, width, height);
+  }
   tmpCanvasElement.remove();
 }
 function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element, show_header) {
   const show_close = false;
   const n_group = Math.max(...l_group) + 1;
-  let w_one_col = 0;
-  if (show_header) {
-    w_one_col = imgs[0].header.cols;
-  } else {
-    w_one_col = imgs[0].scroll.cols;
-  }
+  let w_one_col = Math.min(...imgs.map((e) => e.header.cols));
   let l_h_header = new Array(n_group).fill(0);
   let l_max_rh = new Array(n_group).fill(0);
-  let w = n_group * w_one_col;
+  let l_scale_per_group = new Array(n_group).fill(1);
   let h = 0;
   [...Array(n_group).keys()].forEach(function(current_group){
     let tmp_h = 0;
+    let img_header = imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == 0)[0];
+    // グループ毎の縮尺を取得
+    l_scale_per_group[current_group] = w_one_col / img_header.header.cols;
     if (show_header) {
       // ヘッダー分の高さを加算
-      let img_header = imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == 0)[0];
       tmp_h += img_header.header.rows + img_header.basic_info.rows + img_header.tab.rows;
       l_h_header[current_group] = tmp_h;
     }
@@ -155,25 +156,37 @@ function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element
       // 閉じるボタンの高さを加算
       console.log('未実装');
     }
+    // 最も小さい画像のグループに合わせて縮小
+    tmp_h *= l_scale_per_group[current_group];
     h = Math.max(h, tmp_h);
   })
-  console.log(w, h);
+  if (!show_header) {
+    // ヘッダー非表示なら幅はスクロール部分のみ基準に
+    w_one_col = Math.min(...imgs.map((e) => e.scroll.cols));
+  }
+  let w = n_group * w_one_col;
+  // console.log(w, h);
+  // console.log(l_scale_per_group);
   canvas_element.width = w;
   canvas_element.height = h;
   canvas_element.getContext('2d').fillStyle = 'rgb(242, 242, 242)';
   canvas_element.getContext('2d').fillRect(0, 0, canvas_element.width, canvas_element.height);
-  imgs.forEach(function(img, i) {
+  // 相対座標が大きい順のインデックスを取得
+  // 下から貼り付けて切れ目が出るのを防ぐ
+  let l_index_by_rh_desc = [...Array(imgs.length).keys()].sort((first, second) => l_relative_height[second] - l_relative_height[first]);
+  l_index_by_rh_desc.forEach(function(i) {
     let current_group = l_group[i];
+    let img = imgs[i];
     if (show_header && l_relative_height[i] == 0) {
       // ヘッダーを描画
-      console.log(i, current_group, current_group * w_one_col, 0);
-      drawMat2Canvas(img.header, canvas_element, current_group * w_one_col, 0);
-      drawMat2Canvas(img.basic_info, canvas_element, current_group * w_one_col, img.header.rows);
-      drawMat2Canvas(img.tab, canvas_element, current_group * w_one_col, img.header.rows + img.basic_info.rows);
+      // console.log(i, current_group, current_group * w_one_col, 0, w_one_col, img.header.rows * l_scale_per_group[current_group]);
+      drawMat2Canvas(img.header, canvas_element, current_group * w_one_col, 0, w_one_col, img.header.rows * l_scale_per_group[current_group]);
+      drawMat2Canvas(img.basic_info, canvas_element, current_group * w_one_col, img.header.rows * l_scale_per_group[current_group], w_one_col, img.basic_info.rows * l_scale_per_group[current_group]);
+      drawMat2Canvas(img.tab, canvas_element, current_group * w_one_col, (img.header.rows + img.basic_info.rows) * l_scale_per_group[current_group], w_one_col, img.tab.rows * l_scale_per_group[current_group]);
     }
     // スクロール部分を描画
-    console.log(i, current_group, current_group * w_one_col, l_h_header[current_group] + l_relative_height[i]);
-    drawMat2Canvas(img.scroll, canvas_element, current_group * w_one_col, l_h_header[current_group] + l_relative_height[i]);
+    // console.log(i, current_group, current_group * w_one_col, (l_h_header[current_group] + l_relative_height[i]) * l_scale_per_group[current_group], img.scroll.cols * l_scale_per_group[current_group], img.scroll.rows * l_scale_per_group[current_group]);
+    drawMat2Canvas(img.scroll, canvas_element, current_group * w_one_col, (l_h_header[current_group] + l_relative_height[i]) * l_scale_per_group[current_group], img.scroll.cols * l_scale_per_group[current_group], img.scroll.rows * l_scale_per_group[current_group]);
     if (show_close && l_relative_height[i] == l_max_rh[current_group]) {
       // 閉じるボタンを描画
       console.log('未実装');
@@ -259,7 +272,7 @@ async function generatePhoto() {
     let imgs = await trim_parts(l_mat, l_rects);
     changePercentage(20);
     await repaint();
-    let l_group = await get_group_list(imgs);
+    let l_group = await get_group_list(imgs, l_rects);
     changePercentage(30);
     await repaint();
 

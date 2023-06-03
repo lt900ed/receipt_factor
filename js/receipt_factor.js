@@ -301,8 +301,8 @@ function detect_rects(img_in) {
   tmp_dst.delete();
   let rect_prop_added = add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type);
   let rects = calc_rects(rect_close, rect_prop_added);
-  console.log(rayout_type);
-  console.log(rects);
+  // console.log(rayout_type);
+  // console.log(rects);
   // console.log(rect_whole.whole);
   // console.log(rects.whole);
   if (!(
@@ -341,7 +341,7 @@ function detect_rects(img_in) {
   green.delete();
   cont_out.forEach(function(c){c.delete()});
   l_tmpl_contours_only_large.forEach(function(c){c.delete()});
-  return rects;
+  return {'rayout_type': rayout_type, 'rects': rects};
 }
 function get_rects(l_mat) {
   return new Promise(function(resolve){
@@ -362,14 +362,18 @@ function trim_parts(l_mat, l_rects) {
   return new Promise(function(resolve){
     console.log('閉じるボタンを基準に各パーツ切り出し');
     const n_tgt = l_mat.length;
-    // パーツ毎の最小サイズを算出
+    // レイアウトxパーツ毎の最小サイズを算出
     let tgt_sizes = {};
-    load_parts.forEach(function(p){
-      let tmp_w = Math.min(...l_rects.map((d) => {return d[p].width}));
-      let tmp_h = Math.min(...l_rects.map((d) => {return d[p].height}));
-      tgt_sizes[p] = {'width': tmp_w, 'height': tmp_h};
+    ['normal', 'with_growth_rate', 'with_register_partner'].forEach(function(r){
+      if (l_rects.filter((e) => e.rayout_type == r).length > 0) {
+        tgt_sizes[r] = {};
+        load_parts.forEach(function(p){
+          let tmp_w = Math.min(...l_rects.filter((e) => e.rayout_type == r).map((d) => {return d.rects[p].width}));
+          let tmp_h = Math.min(...l_rects.filter((e) => e.rayout_type == r).map((d) => {return d.rects[p].height}));
+          tgt_sizes[r][p] = {'width': tmp_w, 'height': tmp_h};
+        })
+      }
     });
-
     // 最小サイズに合わせて全パーツを切り出し
     let imgs = [];
     l_mat.forEach(function(m, i){
@@ -377,8 +381,8 @@ function trim_parts(l_mat, l_rects) {
       load_parts.forEach(function(p){
         let tmp_mat = new cv.Mat();
         let tmp_dst = new cv.Mat();
-        tmp_mat = m.roi(l_rects[i][p]).clone();
-        cv.resize(tmp_mat, tmp_dst, tgt_sizes[p]);
+        tmp_mat = m.roi(l_rects[i].rects[p]).clone();
+        cv.resize(tmp_mat, tmp_dst, tgt_sizes[l_rects[i].rayout_type][p]);
         obj_tmp[p] = tmp_dst.clone();
         tmp_mat.delete();
         tmp_dst.delete();
@@ -388,7 +392,7 @@ function trim_parts(l_mat, l_rects) {
     resolve(imgs);
   })
 }
-function get_group_list(imgs) {
+function get_group_list(imgs, l_rects) {
   return new Promise(function(resolve){
     console.log('入力画像をグループ分け');
     const n_tgt = imgs.length;
@@ -401,7 +405,7 @@ function get_group_list(imgs) {
       // グループ番号をnullで初期化
       l_group = Array(n_tgt).fill(null);
       // 各画像の組み合わせ毎の一致度を格納する二次元配列宣言
-      // 似てないと1、似てると0なので1.0で初期化
+      // 似てると1、似てないと0なので1.0で初期化
       let arr_val = new Array(n_tgt);
       for(let y = 0; y < n_tgt; y++) {
         arr_val[y] = new Array(n_tgt).fill(1.0);
@@ -410,16 +414,25 @@ function get_group_list(imgs) {
       // 全組み合わせでテンプレートマッチ
       imgs.forEach(function(img_tmpl, i){
         imgs.forEach(function(img_tgt, j){
-          // 同じ組み合わせで二回チェックしないようjの方が大きいときだけチェック
+          // 同じ組み合わせで二回チェックしないようjの方が大きい時
+          // かつ両者のレイアウトタイプが一致する時だけチェック
+          // 同値の時は同じ画像同士=100%一致なので無視
           if (i < j) {
-            tgt_parts_for_group.forEach(function(p){
-              let res = match_tmpl_min_max_loc(img_tgt[p], img_tmpl[p].roi(new cv.Rect(0, 0, img_tmpl[p].cols - 1, img_tmpl[p].rows - 1)).clone());
-              // パーツ毎の結果を乗算、全部似てればほぼ1のまま、どれかでも違うと一気に0に近づく
-              arr_val[Math.min(i, j)][Math.max(i, j)] *= res.maxVal
-            });
+            if (l_rects[i].rayout_type != l_rects[j].rayout_type) {
+              // レイアウトタイプが異なっていたら100%別グループとして0を強制代入
+              arr_val[Math.min(i, j)][Math.max(i, j)] = 0;
+            } else {
+              // パーツ毎にテンプレートマッチ
+              tgt_parts_for_group.forEach(function(p){
+                let res = match_tmpl_min_max_loc(img_tgt[p], img_tmpl[p].roi(new cv.Rect(0, 0, img_tmpl[p].cols - 1, img_tmpl[p].rows - 1)).clone());
+                // パーツ毎の結果を乗算、全部似てればほぼ1のまま、どれかでも違うと一気に0に近づく
+                arr_val[Math.min(i, j)][Math.max(i, j)] *= res.maxVal;
+              });
+            }
           }
         })
       })
+      // console.log(arr_val);
       let current_group = -1;
       [...Array(n_tgt).keys()].forEach(function(i){
         if (l_group[i] == null) {
