@@ -58,7 +58,7 @@ function add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type) {
 }
 
 // しきい値
-const thres_gray = 240;
+const thres_gray = 225;
 const thres_cont_close = 0.1;
 const thres_match_tmpl = 0.92;
 const thres_match_tmpl_basic_info = 0.85;
