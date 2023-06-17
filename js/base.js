@@ -290,8 +290,11 @@ async function generatePhoto() {
       changePercentage(30 + (50 / n_tgt) * i);
       await repaint();
     }
+    arr_val.forEach(function(r){console.log(r)});
+    arr_loc.forEach(function(r){console.log(r)});
 
     let l_relative_height = await get_relative_dist(arr_val, arr_loc, l_group);
+    await align_missing_imgs(l_relative_height, l_group, imgs);
     changePercentage(90);
     await repaint();
     // 画像出力

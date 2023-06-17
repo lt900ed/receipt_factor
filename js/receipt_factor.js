@@ -474,7 +474,7 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
             tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows - dist)).clone();
           }
           let tmp_res = match_tmpl_min_max_loc(tmp_img_tgt, tmp_img_tmpl);
-          // console.log(i, j, res.maxVal, tmp_res.maxVal, dist);
+          console.log(i, j, res.maxVal, tmp_res.maxVal, dist);
           if (thres_match_tmpl_higher < tmp_res.maxVal) {
             arr_val[Math.min(i, j)][Math.max(i, j)] = res.maxVal;
             arr_loc[Math.min(i, j)][Math.max(i, j)] = dist;
@@ -566,12 +566,37 @@ function get_relative_dist(arr_val, arr_loc, l_group) {
       }
       // 最も上の画像に対する相対座標に変換
       let min_relative_height = Math.min(...l_relative_height.filter((d, i) => l_group[i] == current_group));
+      console.log(l_relative_height, min_relative_height);
       for (let i = 0; i < l_relative_height.length; i++) {
-        if(l_group[i] == current_group) {
+        if(l_group[i] == current_group && l_relative_height[i] != null) {
           l_relative_height[i] -= min_relative_height;
         }
       }
+      console.log(l_relative_height);
     })
+    resolve(l_relative_height);
+  })
+}
+function align_missing_imgs(l_relative_height, l_group, imgs) {
+  return new Promise(function(resolve){
+    console.log(l_relative_height);
+    const n_tgt = imgs.length;
+    console.log('位置が取得出来なかった画像を末尾に単純配置');
+    if (l_relative_height.filter((d) => d == null).length) {
+      raiseNormalMsg('位置が取得出来ない画像がありました。末尾に単純結合しています。');
+      // グループ毎に処理
+      [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
+        let max_rh_already = Math.max(...l_relative_height.filter((d, i) => l_group[i] == current_group));
+        let index_max_rh_already = [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && l_relative_height[d] == max_rh_already)[0];
+        console.log(max_rh_already, index_max_rh_already);
+        let next_rh = max_rh_already + imgs[index_max_rh_already].scroll.rows;
+        [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group && l_relative_height[d] == null).forEach(function(i){
+          l_relative_height[i] = next_rh;
+          next_rh += imgs[i].scroll.rows;
+        })
+      })
+    }
+    console.log(l_relative_height);
     resolve(l_relative_height);
   })
 }
