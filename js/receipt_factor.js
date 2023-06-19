@@ -15,8 +15,8 @@ const x_params = 215;
 const rect_prop = {
   close: [539, 1828, 458, 132],
   whole: [x_full, 51, width_full, 1910],
-  scroll: [x_narrow, 947, width_narrow, 831],
-  bottom_row: [x_narrow, 1695, width_narrow, 80],
+  scroll: [x_narrow, 947, width_narrow, 829],
+  bottom_row: [x_narrow, 1696, width_narrow, 80],
   icon: [347, 235, 150, 150],
   eval_val: [357, 427, 133, 37],
   speed_val: [315, 556, 103, 37],
@@ -137,6 +137,22 @@ function calc_rects(rect_close, rect_prop) {
       'height': Math.floor(rect_prop[k][3] * tgt_per_prop_w)
     }
   });
+  if ('bottom_row' in out && 'scroll' in out) {
+    out.bottom_row = {
+      'x': out.bottom_row.x,
+      'y': out.bottom_row.y,
+      'width': out.bottom_row.width,
+      'height': out.scroll.y + out.scroll.height - out.bottom_row.y
+    }
+  }
+  if ('bottom_row_higher' in out && 'scroll' in out) {
+    out.bottom_row_higher = {
+      'x': out.bottom_row_higher.x,
+      'y': out.bottom_row_higher.y,
+      'width': out.bottom_row_higher.width,
+      'height': out.scroll.y + out.scroll.height - out.bottom_row_higher.y
+    }
+  }
   return out;
 }
 function match_tmpl_min_max_loc(img_tgt, img_tmpl) {
@@ -152,8 +168,9 @@ function detect_rects(img_in) {
   let img_gray = img_in.clone();
   cv.cvtColor(img_gray, img_gray, cv.COLOR_RGBA2GRAY, 0);
   let ksize = new cv.Size(5, 5);
-  cv.GaussianBlur(img_gray, img_gray, ksize, 0, 0, cv.BORDER_DEFAULT);
-  cv.threshold(img_gray, img_gray, thres_gray, 255, cv.THRESH_BINARY);
+  // cv.GaussianBlur(img_gray, img_gray, ksize, 0, 0, cv.BORDER_DEFAULT);
+  // cv.threshold(img_gray, img_gray, thres_gray, 255, cv.THRESH_BINARY);
+  cv.Canny(img_gray, img_gray, 50, 200, 3);
   let img_gray_half = img_gray.roi(new cv.Rect(0, Math.floor(img_in.rows / 2), img_in.cols, img_in.rows - Math.floor(img_in.rows / 2)));
 
   let mv_contours = new cv.MatVector();
@@ -163,10 +180,12 @@ function detect_rects(img_in) {
   // 小さい輪郭は除外して再格納
   let mv_contours_only_large = new cv.MatVector();
   for (let i = 0; i < mv_contours.size(); i++) {
-    if (cv.contourArea(mv_contours.get(i)) > (Math.min(img_gray.cols, img_gray.rows) ** 2) / 80) {
+    if (cv.contourArea(mv_contours.get(i)) > (Math.min(img_gray_half.cols, img_gray_half.rows) ** 2) / 80) {
       mv_contours_only_large.push_back(mv_contours.get(i));
+      // console.log(cv.contourArea(mv_contours.get(i)), (Math.min(img_gray_half.cols, img_gray_half.rows) ** 2) / 80);
     }
   };
+  // console.log(mv_contours.size(), mv_contours_only_large.size());
   if (mv_contours_only_large.size() == 0) {
     throw new Error('閉じるボタンが検出出来ない画像があります。');
   };
@@ -182,7 +201,7 @@ function detect_rects(img_in) {
   // 小さい輪郭は除外して配列に再格納
   let l_tmpl_contours_only_large = [];
   for (let i = 0; i < mv_tmpl_contours.size(); i++) {
-    if (cv.contourArea(mv_tmpl_contours.get(i)) > (Math.min(img_gray.cols, img_gray.rows) ** 2) / 80) {
+    if (cv.contourArea(mv_tmpl_contours.get(i)) > (Math.min(tmpl_gray.cols, tmpl_gray.rows) ** 2) / 80) {
       l_tmpl_contours_only_large.push(mv_tmpl_contours.get(i));
     }
   };
@@ -221,6 +240,7 @@ function detect_rects(img_in) {
   if (cont_out.length == 0) {
     throw new Error('閉じるボタンが正常に検出出来ない画像があります。');
   };
+  // console.log('rect_close_area', cv.contourArea(cont_out[0]));
   let rect_close = cv.boundingRect(cont_out[0]);
   // 一度wholeの枠座標を計算
   let rect_whole = calc_rects(rect_close, {'whole': rect_prop.whole, 'close': rect_prop.close});
