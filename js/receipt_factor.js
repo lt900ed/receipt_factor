@@ -592,14 +592,14 @@ function get_relative_dist(arr_val, arr_loc, l_group) {
           l_relative_height[i] -= min_relative_height;
         }
       }
-      console.log(l_relative_height);
+      // console.log(l_relative_height);
     })
     resolve(l_relative_height);
   })
 }
 function align_missing_imgs(l_relative_height, l_group, imgs) {
   return new Promise(function(resolve){
-    console.log(l_relative_height);
+    // console.log(l_relative_height);
     const n_tgt = imgs.length;
     console.log('位置が取得出来なかった画像を末尾に単純配置');
     if (l_relative_height.filter((d) => d == null).length) {
@@ -616,7 +616,7 @@ function align_missing_imgs(l_relative_height, l_group, imgs) {
         })
       })
     }
-    console.log(l_relative_height);
+    // console.log(l_relative_height);
     resolve(l_relative_height);
   })
 }

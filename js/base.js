@@ -426,5 +426,6 @@ window.onload = function () {
       photoPreview('onChange',files);
   });
   document.getElementById('btnUploadFromClipboard').addEventListener('click', addPhotoFromClipBoard, false);
+  shortcut.add('Ctrl+V', addPhotoFromClipBoard, {});
   document.getElementById('outputImage').addEventListener('click', toggleOutputImageSize, false);
 };
