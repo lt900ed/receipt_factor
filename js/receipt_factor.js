@@ -165,30 +165,50 @@ function match_tmpl_min_max_loc(img_tgt, img_tmpl) {
 }
 
 function detect_rects(img_in) {
+  let mv_contours = new cv.MatVector();
+  let hierarchy = new cv.Mat();
+  let mv_contours_only_large = new cv.MatVector();
+
+  // Canny方でエッジ検出
   let img_gray = img_in.clone();
   cv.cvtColor(img_gray, img_gray, cv.COLOR_RGBA2GRAY, 0);
-  let ksize = new cv.Size(5, 5);
-  // cv.GaussianBlur(img_gray, img_gray, ksize, 0, 0, cv.BORDER_DEFAULT);
-  // cv.threshold(img_gray, img_gray, thres_gray, 255, cv.THRESH_BINARY);
   cv.Canny(img_gray, img_gray, 50, 200, 3);
   let img_gray_half = img_gray.roi(new cv.Rect(0, Math.floor(img_in.rows / 2), img_in.cols, img_in.rows - Math.floor(img_in.rows / 2)));
 
-  let mv_contours = new cv.MatVector();
-  let hierarchy = new cv.Mat();
   // 入力画像で輪郭抽出
   cv.findContours(img_gray_half, mv_contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE, new cv.Point(0, Math.floor(img_in.rows / 2)));
   // 小さい輪郭は除外して再格納
-  let mv_contours_only_large = new cv.MatVector();
   for (let i = 0; i < mv_contours.size(); i++) {
     if (cv.contourArea(mv_contours.get(i)) > (Math.min(img_gray_half.cols, img_gray_half.rows) ** 2) / 80) {
       mv_contours_only_large.push_back(mv_contours.get(i));
       // console.log(cv.contourArea(mv_contours.get(i)), (Math.min(img_gray_half.cols, img_gray_half.rows) ** 2) / 80);
     }
   };
+  img_gray.delete();
+
+  // 二値化でエッジ検出
+  img_gray = img_in.clone();
+  cv.cvtColor(img_gray, img_gray, cv.COLOR_RGBA2GRAY, 0);
+  let ksize = new cv.Size(5, 5);
+  cv.GaussianBlur(img_gray, img_gray, ksize, 0, 0, cv.BORDER_DEFAULT);
+  cv.threshold(img_gray, img_gray, thres_gray, 255, cv.THRESH_BINARY);
+  img_gray_half = img_gray.roi(new cv.Rect(0, Math.floor(img_in.rows / 2), img_in.cols, img_in.rows - Math.floor(img_in.rows / 2)));
+
+  // 入力画像で輪郭抽出
+  cv.findContours(img_gray_half, mv_contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE, new cv.Point(0, Math.floor(img_in.rows / 2)));
+  // 小さい輪郭は除外して再格納
+  for (let i = 0; i < mv_contours.size(); i++) {
+    if (cv.contourArea(mv_contours.get(i)) > (Math.min(img_gray_half.cols, img_gray_half.rows) ** 2) / 80) {
+      mv_contours_only_large.push_back(mv_contours.get(i));
+      // console.log(cv.contourArea(mv_contours.get(i)), (Math.min(img_gray_half.cols, img_gray_half.rows) ** 2) / 80);
+    }
+  };
+
   // console.log(mv_contours.size(), mv_contours_only_large.size());
   if (mv_contours_only_large.size() == 0) {
     throw new Error('閉じるボタンが検出出来ない画像があります。');
   };
+
   // 閉じるボタンテンプレ読み込み
   let tmpl_gray = cv.imread(document.getElementById('tmplClose'));
   cv.cvtColor(tmpl_gray, tmpl_gray, cv.COLOR_RGBA2GRAY, 0);
