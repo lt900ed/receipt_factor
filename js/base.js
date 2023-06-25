@@ -193,7 +193,7 @@ function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element
     }
   })
 };
-function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height) {
+function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, output_div, output_class_name) {
   const n_group = Math.max(...l_group) + 1;
   let w_one_col = Math.min(...imgs.map((e) => e.scroll.cols));
   let l_max_rh = new Array(n_group).fill(0);
@@ -212,8 +212,8 @@ function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height) 
     tmp_h *= tmp_scale;
     // キャンバス生成
     let canvas_element = document.createElement('canvas');
-    canvas_element.setAttribute('class', 'canvasScroll');
-    document.getElementById('tmpCanvasScrolls').appendChild(canvas_element);
+    canvas_element.setAttribute('class', output_class_name);
+    output_div.appendChild(canvas_element);
     // サイズ調整してそれっぽい色を背景色に設定
     canvas_element.width = w_one_col;
     canvas_element.height = tmp_h;
@@ -230,10 +230,10 @@ function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height) 
     })
   })
 };
-function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, canvas_element, show_header) {
+function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, eles_scroll_canvas, canvas_element, show_header) {
   const show_close = false;
   const n_group = Math.max(...l_group) + 1;
-  let l_scroll_canvas = Array.from(document.getElementsByClassName('canvasScroll'));
+  let l_scroll_canvas = Array.from(eles_scroll_canvas);
   let w_one_col = Math.min(...imgs.map((e) => e.header.cols));
   let l_h_header = new Array(n_group).fill(0);
   let l_max_rh = new Array(n_group).fill(0);
@@ -405,8 +405,12 @@ async function generatePhoto() {
       tmpCanvasElement.classList.add('hidden');
       document.getElementById('overview').appendChild(tmpCanvasElement);
     }
-    outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height);
-    outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, tmpCanvasElement, document.getElementById('showHeader').checked);
+    outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, document.getElementById('tmpCanvasScrolls'), 'canvasScroll');
+    if (document.getElementById('showSkillIcon').checked) {
+      l_detected_factor = detectFactor(document.getElementsByClassName('canvasScroll'));
+      console.log(l_detected_factor);
+    };
+    outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, document.getElementsByClassName('canvasScroll'), tmpCanvasElement, document.getElementById('showHeader').checked);
 
     //img要素に出力
     let outputImage = document.getElementById('outputImage');

@@ -12,6 +12,7 @@ const width_narrow = 1079;
 const x_full = 206;
 const x_narrow = 218;
 const x_params = 215;
+const x_factor_interval = 443;
 const rect_prop = {
   close: [539, 1828, 458, 132],
   whole: [x_full, 51, width_full, 1910],
@@ -22,9 +23,14 @@ const rect_prop = {
   speed_val: [315, 556, 103, 37],
   growth_rate: [240, 848, 89, 34],
   register_partner: [541, 880, 454, 129],
+  factor_disc_left: [427, 0, 36, 36],
+  factor_text_left: [469, 0, 372, 33],
 };
 rect_prop['header'] = [rect_prop['whole'][0], rect_prop['whole'][1], rect_prop['whole'][2], 100];
 rect_prop['basic_info'] = [rect_prop['header'][0], rect_prop['header'][1] + rect_prop['header'][3], rect_prop['header'][2], 700];
+rect_prop['factor_disc_right'] = [rect_prop['factor_disc_left'][0] + x_factor_interval, 0, rect_prop['factor_disc_left'][2], 0];
+rect_prop['factor_text_right'] = [rect_prop['factor_text_left'][0] + x_factor_interval, 0, rect_prop['factor_text_left'][2], rect_prop['factor_text_left'][3]];
+
 const rect_prop_dynamic = {
   with_growth_rate: {
       basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], rect_prop.basic_info[3] + 133],
@@ -60,7 +66,7 @@ function add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type) {
 // しきい値
 const thres_gray = 225;
 const thres_cont_close = 0.1;
-const thres_match_tmpl = 0.92;
+const thres_match_tmpl = 0.8;
 const thres_match_tmpl_basic_info = 0.85;
 const thres_match_tmpl_higher = 0.55;
 const thres_match_tmpl_rayout_type = 0.6;
@@ -686,4 +692,92 @@ function generateReceipt(imgs, l_group, l_relative_height) {
     // 上下左右連結は外側で
     resolve(imgs_tmp);
   })
+}
+function detectFactor(eles_scroll_canvas) {
+  let l_scroll_canvas = Array.from(eles_scroll_canvas);
+  const n_group = l_scroll_canvas.length;
+  console.log(n_group);
+  let l_out = [];
+  // グループ毎に処理
+  l_scroll_canvas.forEach((sc) => {
+    let l_tmp = [];
+    // 因子のまるポチとテキストの横方向の位置を取得
+    let tmp_scale = sc.width / rect_prop.scroll[2];
+    let l_rects = [
+      {
+        factor_disc: {
+          x: Math.floor((rect_prop.factor_disc_left[0] - rect_prop.scroll[0]) * tmp_scale),
+          w: Math.floor(rect_prop.factor_disc_left[2] * tmp_scale)},
+        factor_text: {
+          x: Math.floor((rect_prop.factor_text_left[0] - rect_prop.scroll[0]) * tmp_scale),
+          y: 0,
+          w: Math.floor(rect_prop.factor_text_left[2] * tmp_scale),
+          h: Math.floor(rect_prop.factor_text_left[3] * tmp_scale)}
+      },
+      {
+        factor_disc: {
+          x: Math.floor((rect_prop.factor_disc_right[0] - rect_prop.scroll[0]) * tmp_scale),
+          w: Math.floor(rect_prop.factor_disc_right[2] * tmp_scale)},
+        factor_text: {
+          x: Math.floor((rect_prop.factor_text_right[0] - rect_prop.scroll[0]) * tmp_scale),
+          y: 0,
+          w: Math.floor(rect_prop.factor_text_right[2] * tmp_scale),
+          h: Math.floor(rect_prop.factor_text_right[3] * tmp_scale)}
+      }
+    ];
+    // Mat化
+    let tmpImg = cv.imread(sc);
+    // 1列目と2列目を順番に処理
+    [...Array(2).keys()].forEach(lr => {
+      let img_factor_discs = tmpImg.roi(new cv.Rect(
+        l_rects[lr].factor_disc.x,
+        0,
+        l_rects[lr].factor_disc.w,
+        tmpImg.rows)).clone();
+      // 因子のまるポチのテンプレート読み込み
+      let tmpl_factor_disc = cv.imread(document.getElementById('tmplFactorDisc'));
+      cv.resize(tmpl_factor_disc, tmpl_factor_disc, new cv.Size(l_rects[lr].factor_disc.w, l_rects[lr].factor_disc.w), 0, 0, cv.INTER_CUBIC);
+      // テンプレートマッチ
+      let result = new cv.Mat();
+      cv.matchTemplate(img_factor_discs, tmpl_factor_disc, result, cv.TM_CCOEFF_NORMED);
+      // list化
+      let l_res = [];
+      [...Array(result.size().height).keys()].forEach(y => {
+        l_res.push(result.floatPtr(y, 0)[0]);
+      })
+      // テンプレートマッチの結果からまるポチがあると思われる高さを抽出
+      let l_peak = [];
+      let thres_match_tmpl_disc = Math.max(...l_res) * 0.85;
+      [...Array(l_res.length).keys()].forEach(y => {
+        if (0 < y && y < l_res.length - 1) {
+          if (l_res[y] > thres_match_tmpl_disc && l_res[y - 1] < l_res[y] && l_res[y] > l_res[y + 1]) {
+            l_peak.push({index: y, val: l_res[y]});
+          }
+        }
+      })
+      // 位置が近すぎる結果があったらより精度の高い結果のみ残す
+      let l_peak_filtered = l_peak.filter((d) => Math.max(...l_peak.filter((e) => d.index - tmpl_factor_disc.rows / 2 <= e.index && e.index < d.index + tmpl_factor_disc.rows / 2).map((e) => {return e.val})) == d.val);
+      console.log(l_peak_filtered);
+      // まるポチとテキストの座標算出
+      l_peak_filtered.forEach(p => {
+        l_tmp.push({
+          rect_factor_disc: {
+            x: l_rects[lr].factor_disc.x,
+            y: p.index,
+            w: l_rects[lr].factor_disc.w,
+            h: l_rects[lr].factor_disc.w
+          },
+          rect_factor_text: {
+            x: l_rects[lr].factor_text.x,
+            y: p.index,
+            w: l_rects[lr].factor_text.w,
+            h: l_rects[lr].factor_text.h
+          }
+        })
+      })
+    })
+    l_out.push(l_tmp);
+    tmpImg.delete()
+  })
+  return l_out;
 }
