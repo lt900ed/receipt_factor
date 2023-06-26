@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="./css/reset.css" type="text/css">
   <link rel="stylesheet" href="./css/common.css" type="text/css">
   <link rel="stylesheet" href="./css/base.css" type="text/css">
+  <script src="https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
 </head>
 <body class="body">
   <!-- ローディング画面 -->
@@ -89,8 +90,8 @@
                   </li>
                   <li>
                     <div class="considerWrap">
-                      <input type="checkbox" class="checkInput" id="showSkillIcon" checked>
-                      <label class="checkLabel" for="showSkillIcon">スキルアイコンの表示</label>
+                      <input type="checkbox" class="checkInput" id="showSkillIcon">
+                      <label class="checkLabel" for="showSkillIcon">スキルアイコンの表示(β)</label>
                     </div>
                   </li>
                   <!-- <li>
@@ -143,10 +144,16 @@
           ・複数キャラ取り込んだ場合左右に並べて出力されます。<br>
           ・出力された画像をタップすると等倍表示と画面幅に合わせて表示を切り替えられます。<br>
           ・リセットボタンで全てのプレビュー画像と出力結果を削除して最初からやり直せます。<br>
-          ・iOSで画像アプリに保存したい場合は画像長押しから保存して下さい。</p>
+          ・iOSで画像アプリに保存したい場合は画像長押しから保存して下さい。<br>
           ・クリップボードにコピーは対応しているブラウザ・OSでのみ使用できます。<br>
           　Windows 11のChrome、Edgeで動作確認しています。</p>
-        </div>
+          <p>β.スキルアイコンの表示<br>
+            ・各因子にスキルアイコンを追加します。<br>
+            ・因子名をうまく取得出来なかった場合は追加されません。<br>
+            ・シナリオ因子等のスキルが取得できない因子には追加されません。<br>
+            ・取り込んだ画像の解像度が低いほど精度が下がります。<br>
+            　縦幅1500px以上の画像を推奨します。</p>
+          </div>
       </section>
       <hr>
       <section id="updateLog">
@@ -173,6 +180,7 @@
             Ver1.6：Ctrl+Vで📋から貼り付け出来る機能を追加<br>
             Ver1.61：閉じるボタンの検出が失敗しにくくなるよう修正<br>
             Ver1.62：新機能のための内部ロジック一部修正、隣接判定のしきい値調整<br>
+            Ver2.0：スキルアイコン追加機能実装<br>
           </p>
         </div>
       </section>
@@ -189,15 +197,75 @@
     </p>
     <p class="resources"><a href="./">レシート因子メーカー</a></p>
   </footer>
+  <script src="./js/dict_skills.js"></script>
   <script src="./js/receipt_factor.js"></script>
   <script src="./js/base.js"></script>
   <script src="./js/shortcut.js"></script>
   <script async src="./js/opencv.js" onload="onOpenCvReady();" type="text/javascript"></script>
-  <img id="tmplClose" class="hidden" src="./img/tmpl_close.png">
-  <img id="tmplGrowthRate" class="hidden" src="./img/tmpl_growth_rate.png">
-  <img id="tmplRegisterPartner" class="hidden" src="./img/tmpl_register_partner.png">
-  <img id="tmplUnregisterPartner" class="hidden" src="./img/tmpl_unregister_partner.png">
-  <img id="tmplFactorDisc" class="hidden" src="./img/tmpl_factor_disc.png">
-  <div id="tmpCanvasScrolls" class="hidden"></div>
+  <div class="hidden">
+    <img id="tmplClose" src="./img/tmpl_close.png">
+    <img id="tmplGrowthRate" src="./img/tmpl_growth_rate.png">
+    <img id="tmplRegisterPartner" src="./img/tmpl_register_partner.png">
+    <img id="tmplUnregisterPartner" src="./img/tmpl_unregister_partner.png">
+    <img id="tmplFactorDisc" src="./img/tmpl_factor_disc.png">
+    <div id="tmpCanvasScrolls"></div>
+    <div id="tmpSkillIcons">
+      <img id="skillIcon10011" src="./img/skill_icons/10011.webp">
+      <img id="skillIcon10012" src="./img/skill_icons/10012.webp">
+      <img id="skillIcon10013" src="./img/skill_icons/10013.webp">
+      <img id="skillIcon10014" src="./img/skill_icons/10014.webp">
+      <img id="skillIcon10016" src="./img/skill_icons/10016.webp">
+      <img id="skillIcon10021" src="./img/skill_icons/10021.webp">
+      <img id="skillIcon10022" src="./img/skill_icons/10022.webp">
+      <img id="skillIcon10023" src="./img/skill_icons/10023.webp">
+      <img id="skillIcon10024" src="./img/skill_icons/10024.webp">
+      <img id="skillIcon10026" src="./img/skill_icons/10026.webp">
+      <img id="skillIcon10031" src="./img/skill_icons/10031.webp">
+      <img id="skillIcon10032" src="./img/skill_icons/10032.webp">
+      <img id="skillIcon10033" src="./img/skill_icons/10033.webp">
+      <img id="skillIcon10034" src="./img/skill_icons/10034.webp">
+      <img id="skillIcon10036" src="./img/skill_icons/10036.webp">
+      <img id="skillIcon10041" src="./img/skill_icons/10041.webp">
+      <img id="skillIcon10042" src="./img/skill_icons/10042.webp">
+      <img id="skillIcon10043" src="./img/skill_icons/10043.webp">
+      <img id="skillIcon10044" src="./img/skill_icons/10044.webp">
+      <img id="skillIcon10046" src="./img/skill_icons/10046.webp">
+      <img id="skillIcon10051" src="./img/skill_icons/10051.webp">
+      <img id="skillIcon10052" src="./img/skill_icons/10052.webp">
+      <img id="skillIcon10053" src="./img/skill_icons/10053.webp">
+      <img id="skillIcon10054" src="./img/skill_icons/10054.webp">
+      <img id="skillIcon10056" src="./img/skill_icons/10056.webp">
+      <img id="skillIcon20011" src="./img/skill_icons/20011.webp">
+      <img id="skillIcon20012" src="./img/skill_icons/20012.webp">
+      <img id="skillIcon20013" src="./img/skill_icons/20013.webp">
+      <img id="skillIcon20014" src="./img/skill_icons/20014.webp">
+      <img id="skillIcon20015" src="./img/skill_icons/20015.webp">
+      <img id="skillIcon20016" src="./img/skill_icons/20016.webp">
+      <img id="skillIcon20021" src="./img/skill_icons/20021.webp">
+      <img id="skillIcon20024" src="./img/skill_icons/20024.webp">
+      <img id="skillIcon20041" src="./img/skill_icons/20041.webp">
+      <img id="skillIcon20044" src="./img/skill_icons/20044.webp">
+      <img id="skillIcon20051" src="./img/skill_icons/20051.webp">
+      <img id="skillIcon20061" src="./img/skill_icons/20061.webp">
+      <img id="skillIcon20064" src="./img/skill_icons/20064.webp">
+      <img id="skillIcon20091" src="./img/skill_icons/20091.webp">
+      <img id="skillIcon20101" src="./img/skill_icons/20101.webp">
+      <img id="skillIcon20111" src="./img/skill_icons/20111.webp">
+      <img id="skillIcon20121" src="./img/skill_icons/20121.webp">
+      <img id="skillIcon20131" src="./img/skill_icons/20131.webp">
+      <img id="skillIcon20141" src="./img/skill_icons/20141.webp">
+      <img id="skillIcon20151" src="./img/skill_icons/20151.webp">
+      <img id="skillIcon20161" src="./img/skill_icons/20161.webp">
+      <img id="skillIcon20171" src="./img/skill_icons/20171.webp">
+      <img id="skillIcon20181" src="./img/skill_icons/20181.webp">
+      <img id="skillIcon20191" src="./img/skill_icons/20191.webp">
+      <img id="skillIcon20201" src="./img/skill_icons/20201.webp">
+      <img id="skillIcon30011" src="./img/skill_icons/30011.webp">
+      <img id="skillIcon30021" src="./img/skill_icons/30021.webp">
+      <img id="skillIcon30041" src="./img/skill_icons/30041.webp">
+      <img id="skillIcon30051" src="./img/skill_icons/30051.webp">
+      <img id="skillIcon30071" src="./img/skill_icons/30071.webp">
+    </div>
+  </div>
 </body>
 </html>

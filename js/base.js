@@ -389,8 +389,8 @@ async function generatePhoto() {
       changePercentage(30 + (50 / n_tgt) * i);
       await repaint();
     }
-    arr_val.forEach(function(r){console.log(r)});
-    arr_loc.forEach(function(r){console.log(r)});
+    // arr_val.forEach(function(r){console.log(r)});
+    // arr_loc.forEach(function(r){console.log(r)});
 
     let l_relative_height = await get_relative_dist(arr_val, arr_loc, l_group);
     await align_missing_imgs(l_relative_height, l_group, imgs);
@@ -407,8 +407,16 @@ async function generatePhoto() {
     }
     outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, document.getElementById('tmpCanvasScrolls'), 'canvasScroll');
     if (document.getElementById('showSkillIcon').checked) {
-      l_detected_factor = detectFactor(document.getElementsByClassName('canvasScroll'));
+      let l_detected_factor = detectFactor(document.getElementsByClassName('canvasScroll'));
+      l_detected_factor = await ocr_factor_text(document.getElementsByClassName('canvasScroll'), l_detected_factor);
       console.log(l_detected_factor);
+      // l_detected_factor.forEach(function(d){
+      //   if (d.factor_text in dict_skills) {
+      //     console.log(d.factor_text, dict_skills[d.factor_text].skill_type_index)
+      //   } else {
+      //     console.log(d.factor_text, '99999')
+      //   }
+      // })
     };
     outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, document.getElementsByClassName('canvasScroll'), tmpCanvasElement, document.getElementById('showHeader').checked);
 

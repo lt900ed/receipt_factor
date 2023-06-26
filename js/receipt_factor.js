@@ -24,11 +24,13 @@ const rect_prop = {
   growth_rate: [240, 848, 89, 34],
   register_partner: [541, 880, 454, 129],
   factor_disc_left: [427, 0, 36, 36],
+  factor_icon_left: [418, 0, 54, 54],
   factor_text_left: [469, 0, 372, 33],
 };
 rect_prop['header'] = [rect_prop['whole'][0], rect_prop['whole'][1], rect_prop['whole'][2], 100];
 rect_prop['basic_info'] = [rect_prop['header'][0], rect_prop['header'][1] + rect_prop['header'][3], rect_prop['header'][2], 700];
-rect_prop['factor_disc_right'] = [rect_prop['factor_disc_left'][0] + x_factor_interval, 0, rect_prop['factor_disc_left'][2], 0];
+rect_prop['factor_disc_right'] = [rect_prop['factor_disc_left'][0] + x_factor_interval, 0, rect_prop['factor_disc_left'][2], rect_prop['factor_disc_left'][3]];
+rect_prop['factor_icon_right'] = [rect_prop['factor_icon_left'][0] + x_factor_interval, 0, rect_prop['factor_icon_left'][2], rect_prop['factor_icon_left'][3]];
 rect_prop['factor_text_right'] = [rect_prop['factor_text_left'][0] + x_factor_interval, 0, rect_prop['factor_text_left'][2], rect_prop['factor_text_left'][3]];
 
 const rect_prop_dynamic = {
@@ -72,10 +74,78 @@ const thres_match_tmpl_higher = 0.55;
 const thres_match_tmpl_rayout_type = 0.6;
 const thres_header = 0.9;
 
-//パラメータ
+// パラメータ
 const force_one_group = false;
 const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll', 'bottom_row', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
 const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
+
+// 因子名正規化用正規表現
+const regexps = [
+  {pattern: /[\s\n]+/g, rep: ''},
+  {pattern: '菲', rep: '非'},
+  {pattern: /[○〇◯◎●]+/g, rep: '○'},
+  {pattern: '$', rep: 'S'},
+  {pattern: '遽', rep: '遊'},
+  {pattern: '加譜', rep: '加護'},
+  {pattern: '加譚', rep: '加護'},
+  {pattern: '末圖', rep: '末脚'},
+  {pattern: '膠', rep: '脚'},
+  {pattern: '圃', rep: '脚'},
+  {pattern: 'アオハムル', rep: 'アオハル'},
+  {pattern: '回還', rep: '回避'},
+  {pattern: '良八', rep: '良バ'},
+  {pattern: '悪八', rep: '良バ'},
+  {pattern: 'バX場', rep: 'バ場'},
+  {pattern: 'っ/', rep: 'っ！'},
+  {pattern: '日李', rep: '日本'},
+  {pattern: 'ベースアップ', rep: 'ペースアップ'},
+  {pattern: /おしまいっ$/, rep: 'おしまいっ！'},
+  {pattern: '造び', rep: '遊び'},
+  {pattern: '芦頚', rep: '先頭'},
+  {pattern: 'ブプライド', rep: 'プライド'},
+  {pattern: '騎醒', rep: '距離'},
+  {pattern: /ミ$/, rep: 'S'},
+  {pattern: 'コツウ', rep: 'コツ○'},
+  {pattern: '述げ', rep: '逃げ'},
+  {pattern: 'ナチー', rep: 'ナー'},
+  {pattern: 'コーチー', rep: 'コーナー'},
+  {pattern: 'ーC', rep: 'ー○'},
+  {pattern: '川烈託華', rep: '川崎記念'},
+  {pattern: 'ウマ媚', rep: 'ウマ娘'},
+  {pattern: 'ウマ娼', rep: 'ウマ娘'},
+  {pattern: 'ウマ姥', rep: 'ウマ娘'},
+  {pattern: '監ウマ', rep: '夏ウマ'},
+  {pattern: '先験', rep: '先駆'},
+  {pattern: '先駿', rep: '先駆'},
+  {pattern: /[①-⑳]+/, rep: ''},
+  {pattern: /\([昌映]\)/, rep: '(春)'},
+  {pattern: /[賛啓]$/, rep: '賞'},
+  {pattern: /[賛啓]\(/, rep: '賞('},
+  {pattern: '紺中力', rep: '集中力'},
+  {pattern: /[」』]+/, rep: 'J'},
+  {pattern: '_', rep: ''},
+  {pattern: /ー$/, rep: ''},
+  {pattern: /ダービ$/, rep: 'ダービー'},
+  {pattern: /イータ$/, rep: 'イーター'},
+  {pattern: /シンパシ$/, rep: 'シンパシー'},
+  {pattern: /プレッシャ$/, rep: 'プレッシャー'},
+  {pattern: /コーナ$/, rep: 'コーナー○'},
+  {pattern: '墨り', rep: '曇り'},
+  {pattern: '日一', rep: '日本'},
+  {pattern: '日ホ', rep: '日本'},
+  {pattern: '丿', rep: '！'},
+  {pattern: /SS$/, rep: 'S'},
+  {pattern: 'ポボポ', rep: 'ポ'},
+  {pattern: '跡願', rep: '距離'},
+  {pattern: '距難', rep: '距離'},
+  {pattern: '揶', rep: '押'},
+  {pattern: '大隙', rep: '大阪'},
+  {pattern: '華根幹', rep: '非根幹'},
+  {pattern: '加通', rep: '加速'},
+  {pattern: '重贄', rep: '重賞'},
+  // {pattern: '', rep: ''},
+  // {pattern: //, rep: ''},
+]
 
 function vconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
   const w_min = Math.min(...im_list.map((d) => {return d.cols}));
@@ -707,7 +777,14 @@ function detectFactor(eles_scroll_canvas) {
       {
         factor_disc: {
           x: Math.floor((rect_prop.factor_disc_left[0] - rect_prop.scroll[0]) * tmp_scale),
-          w: Math.floor(rect_prop.factor_disc_left[2] * tmp_scale)},
+          y: 0,
+          w: Math.floor(rect_prop.factor_disc_left[2] * tmp_scale),
+          h: Math.floor(rect_prop.factor_disc_left[2] * tmp_scale)},
+        factor_icon: {
+          x: Math.floor((rect_prop.factor_icon_left[0] - rect_prop.scroll[0]) * tmp_scale),
+          y: 0,
+          w: Math.floor(rect_prop.factor_icon_left[2] * tmp_scale),
+          h: Math.floor(rect_prop.factor_icon_left[3] * tmp_scale)},
         factor_text: {
           x: Math.floor((rect_prop.factor_text_left[0] - rect_prop.scroll[0]) * tmp_scale),
           y: 0,
@@ -718,6 +795,11 @@ function detectFactor(eles_scroll_canvas) {
         factor_disc: {
           x: Math.floor((rect_prop.factor_disc_right[0] - rect_prop.scroll[0]) * tmp_scale),
           w: Math.floor(rect_prop.factor_disc_right[2] * tmp_scale)},
+        factor_icon: {
+          x: Math.floor((rect_prop.factor_icon_right[0] - rect_prop.scroll[0]) * tmp_scale),
+          y: 0,
+          w: Math.floor(rect_prop.factor_icon_right[2] * tmp_scale),
+          h: Math.floor(rect_prop.factor_icon_right[3] * tmp_scale)},
         factor_text: {
           x: Math.floor((rect_prop.factor_text_right[0] - rect_prop.scroll[0]) * tmp_scale),
           y: 0,
@@ -756,22 +838,29 @@ function detectFactor(eles_scroll_canvas) {
         }
       })
       // 位置が近すぎる結果があったらより精度の高い結果のみ残す
-      let l_peak_filtered = l_peak.filter((d) => Math.max(...l_peak.filter((e) => d.index - tmpl_factor_disc.rows / 2 <= e.index && e.index < d.index + tmpl_factor_disc.rows / 2).map((e) => {return e.val})) == d.val);
+      let l_peak_filtered = l_peak.filter((d) => Math.max(...l_peak.filter((e) => d.index - tmpl_factor_disc.rows <= e.index && e.index < d.index + tmpl_factor_disc.rows).map((e) => {return e.val})) == d.val);
       console.log(l_peak_filtered);
       // まるポチとテキストの座標算出
       l_peak_filtered.forEach(p => {
         l_tmp.push({
           rect_factor_disc: {
-            x: l_rects[lr].factor_disc.x,
-            y: p.index,
-            w: l_rects[lr].factor_disc.w,
-            h: l_rects[lr].factor_disc.w
+            left: l_rects[lr].factor_disc.x,
+            top: p.index,
+            width: l_rects[lr].factor_disc.w,
+            height: l_rects[lr].factor_disc.h
+          },
+          // アイコンの座標は盾の中心がまるポチと同じになるように
+          rect_factor_icon: {
+            left: l_rects[lr].factor_icon.x,
+            top: Math.floor(p.index + l_rects[lr].factor_disc.w / 2 - l_rects[lr].factor_icon.h / 2),
+            width: l_rects[lr].factor_icon.w,
+            height: l_rects[lr].factor_icon.h
           },
           rect_factor_text: {
-            x: l_rects[lr].factor_text.x,
-            y: p.index,
-            w: l_rects[lr].factor_text.w,
-            h: l_rects[lr].factor_text.h
+            left: l_rects[lr].factor_text.x,
+            top: p.index,
+            width: l_rects[lr].factor_text.w,
+            height: l_rects[lr].factor_text.h
           }
         })
       })
@@ -780,4 +869,69 @@ function detectFactor(eles_scroll_canvas) {
     tmpImg.delete()
   })
   return l_out;
+}
+async function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
+  let l_scroll_canvas = Array.from(eles_scroll_canvas);
+  const min_height_factor_text = 30;
+  const worker = await Tesseract.createWorker({
+    // corePath: '../../node_modules/tesseract.js-core',
+    workerPath: "https://unpkg.com/tesseract.js@4.1.1/dist/worker.min.js",
+    // logger: function(m){console.log(m);}
+  });
+  await worker.loadLanguage('jpn');
+  await worker.initialize('jpn', 3);
+  for (let i = 0; i < l_detected_factor.length; i++) {
+    for (let j = 0; j < l_detected_factor[i].length; j++) {
+      const tmpCanvasElement = document.createElement('canvas');
+      // tmpCanvasElement.setAttribute('id', 'tmpCanvasElement' + i);
+      const w = Math.max(l_detected_factor[i][j].rect_factor_text.width, Math.floor(l_detected_factor[i][j].rect_factor_text.width / l_detected_factor[i][j].rect_factor_text.height * min_height_factor_text));
+      const h = Math.max(l_detected_factor[i][j].rect_factor_text.height, min_height_factor_text);
+      tmpCanvasElement.width = w;
+      tmpCanvasElement.height = h;
+      tmpCanvasElement.getContext('2d').drawImage(
+        l_scroll_canvas[i],
+        l_detected_factor[i][j].rect_factor_text.left,
+        l_detected_factor[i][j].rect_factor_text.top,
+        l_detected_factor[i][j].rect_factor_text.width,
+        l_detected_factor[i][j].rect_factor_text.height,
+        0, 0, w, h);
+      const { data: { text } } = await worker.recognize(tmpCanvasElement, {});
+      tmpCanvasElement.remove();
+      // console.log(text);
+      l_detected_factor[i][j]['factor_text'] = normalize_text(text, regexps);
+
+      //アイコン描画
+      console.log(l_detected_factor[i][j].factor_text, l_detected_factor[i][j].factor_text in dict_skills);
+      if (l_detected_factor[i][j].factor_text in dict_skills) {
+        const tmpImgElement = document.getElementById('skillIcon' + dict_skills[l_detected_factor[i][j].factor_text].skill_type_index);
+        l_scroll_canvas[i].getContext('2d').drawImage(
+          tmpImgElement,
+          l_detected_factor[i][j].rect_factor_icon.left,
+          l_detected_factor[i][j].rect_factor_icon.top,
+          l_detected_factor[i][j].rect_factor_icon.width,
+          l_detected_factor[i][j].rect_factor_icon.height,
+        )
+      }
+    }
+  }
+  await worker.terminate();
+  return l_detected_factor;
+}
+function normalize_text(text, regexps) {
+  if (typeof text === 'undefined') {
+    return ''
+  } else {
+    t = text;
+    t = hankaku2Zenkaku(t);
+    regexps.forEach(r => {
+      t = t.replace(r.pattern, r.rep);
+    })
+    console.log(text, t);
+    return t
+  }
+}
+function hankaku2Zenkaku(str) {
+  return str.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
+      return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
+  });
 }
