@@ -117,14 +117,23 @@
           <button id="btnSavePNG" class="btn weak" value="PNGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'png');return false;">PNGで保存</button>
           <button id="btnSaveClipBoard" class="btn weak" value="📋にコピー" onclick="SaveToClipBoard(document.getElementById('canvasOutput'));return false;">📋にコピー</button>
         </div>
-        <p id="outputAreaText">ここに結果が表示されます</p>
-        <p id="toggleSizeText" class="hidden">画像タップで表示サイズ切り替え</p>
+        <p id="outputAreaText" class="overviewTitle">ここに結果が表示されます</p>
+        <p id="toggleSizeText" class="overviewTitle hidden">画像タップで表示サイズ切り替え</p>
         <img id="outputImage" class="hidden" src="">
+        <div id="overviewOCRResult" class="hidden">
+          <div class="editormd-preview-container">
+            <p class="overviewSubTitle">・検出精度向上のご協力のお願い</p>
+            <p>スキルアイコンの表示機能の精度を向上させるため因子名の誤検出パターンを収集しています。<br>
+            下のテキスト欄に表示されている検出結果をコピーし<a href="https://forms.gle/wFntwkAQKgbsniZH9" target="_blank" rel="noopener">専用フォーム</a>にお送り下さい。<br>
+            より多くのレシート因子に使えるようになるためご協力お願い致します。</p>
+          </div>
+          <textarea id="outputOCRResult" cols="50" rows="3"></textarea>
+        </div>
       </section>
       <hr>
       <section id="howto">
         <h3>使い方</h3>
-        <div class="markdown-body editormd-preview-container" id=memo_text>
+        <div class="markdown-body editormd-preview-container" id="memo_text">
           <p>1.殿堂入りウマ娘の詳細画面をスクロールしながらスクリーンショットを撮る<br>
           ・スキル、継承、育成情報タブいずれも対応しています。<br>
           ・少なくとも二行ずつ重なるように撮影して下さい。<br>
@@ -180,7 +189,7 @@
             Ver1.6：Ctrl+Vで📋から貼り付け出来る機能を追加<br>
             Ver1.61：閉じるボタンの検出が失敗しにくくなるよう修正<br>
             Ver1.62：新機能のための内部ロジック一部修正、隣接判定のしきい値調整<br>
-            Ver2.0：スキルアイコン追加機能実装<br>
+            Ver2.0：スキルアイコン表示機能追加(β版) 協力：<a href="https://ウマ娘.攻略.tools/" target="_blank" rel="noopener">U-tools</a>>さん<br>
           </p>
         </div>
       </section>
@@ -198,6 +207,7 @@
     <p class="resources"><a href="./">レシート因子メーカー</a></p>
   </footer>
   <script src="./js/dict_skills.js"></script>
+  <script src="./js/regexps.js"></script>
   <script src="./js/receipt_factor.js"></script>
   <script src="./js/base.js"></script>
   <script src="./js/shortcut.js"></script>

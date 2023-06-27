@@ -564,8 +564,11 @@ div.icon--twitter::after{
 #overview{
   text-align: center;
 }
-#overview p{
+.overviewTitle{
   font-size: large;
+}
+.overviewSubTitle{
+  font-size: medium;
 }
 #loading {
   color: rgb(0, 0, 0);

@@ -409,15 +409,12 @@ async function generatePhoto() {
     if (document.getElementById('showSkillIcon').checked) {
       let l_detected_factor = detectFactor(document.getElementsByClassName('canvasScroll'));
       l_detected_factor = await ocr_factor_text(document.getElementsByClassName('canvasScroll'), l_detected_factor);
-      console.log(l_detected_factor);
-      // l_detected_factor.forEach(function(d){
-      //   if (d.factor_text in dict_skills) {
-      //     console.log(d.factor_text, dict_skills[d.factor_text].skill_type_index)
-      //   } else {
-      //     console.log(d.factor_text, '99999')
-      //   }
-      // })
-    };
+      document.getElementById('overviewOCRResult').classList.remove('hidden');
+      ocr_result_text = l_detected_factor.filter(d => d.factor_text != '').map((d) => d.factor_text).join();
+      console.log(ocr_result_text);
+    } else {
+      document.getElementById('overviewOCRResult').classList.add('hidden');
+    }
     outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, document.getElementsByClassName('canvasScroll'), tmpCanvasElement, document.getElementById('showHeader').checked);
 
     //img要素に出力
