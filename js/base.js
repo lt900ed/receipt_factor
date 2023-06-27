@@ -337,6 +337,7 @@ function photoPreview(event, fs = null) {
 };
 async function generatePhoto() {
   try {
+    const is_show_skill_icon = document.getElementById('showSkillIcon').checked;
     // なんか長辺が2175pxより大きいとMatchShapesでエラーになるので予め小さくしとく
     const limit_px = 2175;
     if (document.getElementById('btnSubmit').classList.contains('imgNotReady')) {
@@ -366,16 +367,16 @@ async function generatePhoto() {
     };
     // メイン加工関数呼び出し
     let l_rects = await get_rects(l_mat);
-    changePercentage(10);
+    if (is_show_skill_icon) {changePercentage(5)} else {changePercentage(10)};
     await repaint();
     let imgs = await trim_parts(l_mat, l_rects);
-    changePercentage(20);
+    if (is_show_skill_icon) {changePercentage(10)} else {changePercentage(20)};
     await repaint();
     let l_group = await get_group_list(imgs, l_rects);
-    changePercentage(30);
+    if (is_show_skill_icon) {changePercentage(15)} else {changePercentage(30)};
     await repaint();
 
-    console.log('グループ内でテンプレートマッチ')
+    console.log('グループ内でテンプレートマッチ');
     const n_tgt = imgs.length;
     // 結果格納用配列初期化
     let arr_val = new Array(n_tgt);
@@ -386,7 +387,7 @@ async function generatePhoto() {
     for (let i = 0; i < n_tgt; i++) {
       console.log((i + 1) +  '/' + n_tgt);
       await match_one_line(imgs, l_group, arr_val, arr_loc, i);
-      changePercentage(30 + (50 / n_tgt) * i);
+      if (is_show_skill_icon) {changePercentage(15 + (25 / n_tgt) * i)} else {changePercentage(30 + (50 / n_tgt) * i)};
       await repaint();
     }
     // arr_val.forEach(function(r){console.log(r)});
@@ -394,9 +395,9 @@ async function generatePhoto() {
 
     let l_relative_height = await get_relative_dist(arr_val, arr_loc, l_group);
     await align_missing_imgs(l_relative_height, l_group, imgs);
-    changePercentage(90);
+    if (is_show_skill_icon) {changePercentage(50)} else {changePercentage(90)};
     await repaint();
-    // 画像出力
+    console.log('画像出力');
     let tmpCanvasElement = document.getElementById('canvasOutput');
     if (!tmpCanvasElement) {
       // キャンバスがなかったら生成
@@ -407,11 +408,23 @@ async function generatePhoto() {
     }
     outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, document.getElementById('tmpCanvasScrolls'), 'canvasScroll');
     if (document.getElementById('showSkillIcon').checked) {
+      console.log('スキルアイコン追加');
+      // 因子の表示位置取得
       let l_detected_factor = detectFactor(document.getElementsByClassName('canvasScroll'));
+      changePercentage(75);
+      await repaint();
+      // 因子名のOCR処理
       l_detected_factor = await ocr_factor_text(document.getElementsByClassName('canvasScroll'), l_detected_factor);
-      document.getElementById('overviewOCRResult').classList.remove('hidden');
-      ocr_result_text = l_detected_factor.filter(d => d.factor_text != '').map((d) => d.factor_text).join();
-      console.log(ocr_result_text);
+      let ocr_result_text = l_detected_factor.map(d => d.filter(d => d.factor_text != '' && !(d.factor_text in dict_skills)).map((d) => d.factor_text).join());
+      ocr_result_text = ocr_result_text.filter(d => d != '').join();
+      if (!ocr_result_text == '') {
+        document.getElementById('overviewOCRResult').classList.remove('hidden');
+        document.getElementById('outputOCRResult').value = ocr_result_text;
+      } else {
+        document.getElementById('overviewOCRResult').classList.add('hidden');
+      }
+      changePercentage(90);
+      await repaint();
     } else {
       document.getElementById('overviewOCRResult').classList.add('hidden');
     }
@@ -504,6 +517,9 @@ function SaveOriginal(canvas_src, ext){
     default:
       GeneratedDownloadAnker(canvas_out.toDataURL('image/jpeg', 0.95), 'receipt_' + str_dt + '.jpg');
   };
+  if (!document.getElementById('overviewOCRResult').classList.contains('hidden')) {
+    document.getElementById('overviewOCRResult').scrollIntoView({behavior : 'smooth', block : 'start'});
+  }
 };
 function SaveToClipBoard(canvas_src) {
     // Canvas から Blob オブジェクトを生成

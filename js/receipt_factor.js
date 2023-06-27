@@ -72,6 +72,8 @@ const thres_match_tmpl = 0.8;
 const thres_match_tmpl_basic_info = 0.85;
 const thres_match_tmpl_higher = 0.55;
 const thres_match_tmpl_rayout_type = 0.6;
+const thres_match_tmpl_disc = 0.3;
+const thres_match_tmpl_disc_rate = 0.9;
 const thres_header = 0.9;
 
 // パラメータ
@@ -761,10 +763,11 @@ function detectFactor(eles_scroll_canvas) {
       })
       // テンプレートマッチの結果からまるポチがあると思われる高さを抽出
       let l_peak = [];
-      let thres_match_tmpl_disc = Math.max(...l_res) * 0.85;
+      let thres_match_tmpl_disc_dynamic = Math.max(...l_res) * thres_match_tmpl_disc_rate;
+      console.log(thres_match_tmpl_disc_dynamic);
       [...Array(l_res.length).keys()].forEach(y => {
         if (0 < y && y < l_res.length - 1) {
-          if (l_res[y] > thres_match_tmpl_disc && l_res[y - 1] < l_res[y] && l_res[y] > l_res[y + 1]) {
+          if (l_res[y] > thres_match_tmpl_disc && l_res[y] > thres_match_tmpl_disc_dynamic && l_res[y - 1] < l_res[y] && l_res[y] > l_res[y + 1]) {
             l_peak.push({index: y, val: l_res[y]});
           }
         }
@@ -802,42 +805,47 @@ function detectFactor(eles_scroll_canvas) {
   })
   return l_out;
 }
-async function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
-  let l_scroll_canvas = Array.from(eles_scroll_canvas);
-  const min_height_factor_text = 30;
-  const worker = await Tesseract.createWorker({
-    // corePath: '../../node_modules/tesseract.js-core',
-    workerPath: "https://unpkg.com/tesseract.js@4.1.1/dist/worker.min.js",
-    // logger: function(m){console.log(m);}
-  });
-  await worker.loadLanguage('jpn');
-  await worker.initialize('jpn', 3);
-  for (let i = 0; i < l_detected_factor.length; i++) {
-    for (let j = 0; j < l_detected_factor[i].length; j++) {
-      const tmpCanvasElement = document.createElement('canvas');
-      // tmpCanvasElement.setAttribute('id', 'tmpCanvasElement' + i);
-      const w = Math.max(l_detected_factor[i][j].rect_factor_text.width, Math.floor(l_detected_factor[i][j].rect_factor_text.width / l_detected_factor[i][j].rect_factor_text.height * min_height_factor_text));
-      const h = Math.max(l_detected_factor[i][j].rect_factor_text.height, min_height_factor_text);
-      tmpCanvasElement.width = w;
-      tmpCanvasElement.height = h;
-      tmpCanvasElement.getContext('2d').drawImage(
-        l_scroll_canvas[i],
-        l_detected_factor[i][j].rect_factor_text.left,
-        l_detected_factor[i][j].rect_factor_text.top,
-        l_detected_factor[i][j].rect_factor_text.width,
-        l_detected_factor[i][j].rect_factor_text.height,
-        0, 0, w, h);
-      const { data: { text } } = await worker.recognize(tmpCanvasElement, {});
-      tmpCanvasElement.remove();
-      // console.log(text);
-      l_detected_factor[i][j]['factor_text'] = normalize_text(text, regexps);
+function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
+  return new Promise(async function(resolve){
+    let l_scroll_canvas = Array.from(eles_scroll_canvas);
+    const min_height_factor_text = 30;
+    const worker = await Tesseract.createWorker({
+      // corePath: '../../node_modules/tesseract.js-core',
+      workerPath: "https://unpkg.com/tesseract.js@4.1.1/dist/worker.min.js",
+      // logger: function(m){console.log(m);}
+    });
+    await worker.loadLanguage('jpn');
+    await worker.initialize('jpn', 3);
+    for (let i = 0; i < l_detected_factor.length; i++) {
+      for (let j = 0; j < l_detected_factor[i].length; j++) {
+        const tmpCanvasElement = document.createElement('canvas');
+        // tmpCanvasElement.setAttribute('id', 'tmpCanvasElement' + i);
+        const w = Math.max(l_detected_factor[i][j].rect_factor_text.width, Math.floor(l_detected_factor[i][j].rect_factor_text.width / l_detected_factor[i][j].rect_factor_text.height * min_height_factor_text));
+        const h = Math.max(l_detected_factor[i][j].rect_factor_text.height, min_height_factor_text);
+        tmpCanvasElement.width = w;
+        tmpCanvasElement.height = h;
+        tmpCanvasElement.getContext('2d').drawImage(
+          l_scroll_canvas[i],
+          l_detected_factor[i][j].rect_factor_text.left,
+          l_detected_factor[i][j].rect_factor_text.top,
+          l_detected_factor[i][j].rect_factor_text.width,
+          l_detected_factor[i][j].rect_factor_text.height,
+          0, 0, w, h);
+        const { data: { text } } = await worker.recognize(tmpCanvasElement, {});
+        tmpCanvasElement.remove();
+        // console.log(text);
+        l_detected_factor[i][j]['factor_text'] = normalize_text(text, regexps);
 
-      //アイコン描画
-      console.log(l_detected_factor[i][j].factor_text, l_detected_factor[i][j].factor_text in dict_skills);
-      if (l_detected_factor[i][j].factor_text in dict_skills) {
-        const tmpImgElement = document.getElementById('skillIcon' + dict_skills[l_detected_factor[i][j].factor_text].skill_type_index);
+        //アイコン描画
+        // console.log(l_detected_factor[i][j].factor_text, l_detected_factor[i][j].factor_text in dict_skills);
+        let skill_icon_id = '';
+        if (l_detected_factor[i][j].factor_text in dict_skills) {
+          skillicon_id = 'skillIcon' + dict_skills[l_detected_factor[i][j].factor_text].skill_type_index;
+        } else {
+          skillicon_id = 'skillIconUnknown';
+        }
         l_scroll_canvas[i].getContext('2d').drawImage(
-          tmpImgElement,
+          document.getElementById(skillicon_id),
           l_detected_factor[i][j].rect_factor_icon.left,
           l_detected_factor[i][j].rect_factor_icon.top,
           l_detected_factor[i][j].rect_factor_icon.width,
@@ -845,9 +853,9 @@ async function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
         )
       }
     }
-  }
-  await worker.terminate();
-  return l_detected_factor;
+    await worker.terminate();
+    resolve(l_detected_factor);
+  })
 }
 function normalize_text(text, regexps) {
   if (typeof text === 'undefined') {
@@ -858,7 +866,7 @@ function normalize_text(text, regexps) {
     regexps.forEach(r => {
       t = t.replace(r.pattern, r.rep);
     })
-    console.log(text, t);
+    // console.log(text, t);
     return t
   }
 }

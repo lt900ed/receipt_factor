@@ -127,7 +127,7 @@
             下のテキスト欄に表示されている検出結果をコピーし<a href="https://forms.gle/wFntwkAQKgbsniZH9" target="_blank" rel="noopener">専用フォーム</a>にお送り下さい。<br>
             より多くのレシート因子に使えるようになるためご協力お願い致します。</p>
           </div>
-          <textarea id="outputOCRResult" cols="50" rows="3"></textarea>
+          <textarea id="outputOCRResult" cols="50" rows="3" onclick="this.select()"></textarea>
         </div>
       </section>
       <hr>
@@ -157,12 +157,11 @@
           ・クリップボードにコピーは対応しているブラウザ・OSでのみ使用できます。<br>
           　Windows 11のChrome、Edgeで動作確認しています。</p>
           <p>β.スキルアイコンの表示<br>
-            ・各因子にスキルアイコンを追加します。<br>
-            ・因子名をうまく取得出来なかった場合は追加されません。<br>
-            ・シナリオ因子等のスキルが取得できない因子には追加されません。<br>
-            ・取り込んだ画像の解像度が低いほど精度が下がります。<br>
-            　縦幅1500px以上の画像を推奨します。</p>
-          </div>
+          ・各因子にスキルアイコンを追加します。<br>
+          ・シナリオ因子等のスキルが取得できない因子の場合、因子名をうまく取得出来なかった場合には[？]が追加されます。<br>
+          ・取り込んだ画像の解像度が低いほど精度が下がります。縦幅1500px以上の画像を推奨します。<br>
+          ・スキル情報は<a href="https://ウマ娘.攻略.tools/" target="_blank" rel="noopener">U-tools</a>さんからご提供頂いています。</p>
+        </div>
       </section>
       <hr>
       <section id="updateLog">
@@ -189,7 +188,7 @@
             Ver1.6：Ctrl+Vで📋から貼り付け出来る機能を追加<br>
             Ver1.61：閉じるボタンの検出が失敗しにくくなるよう修正<br>
             Ver1.62：新機能のための内部ロジック一部修正、隣接判定のしきい値調整<br>
-            Ver2.0：スキルアイコン表示機能追加(β版) 協力：<a href="https://ウマ娘.攻略.tools/" target="_blank" rel="noopener">U-tools</a>>さん<br>
+            Ver2.0：スキルアイコン表示機能追加(β版) 協力：<a href="https://ウマ娘.攻略.tools/" target="_blank" rel="noopener">U-tools</a>さん<br>
           </p>
         </div>
       </section>
@@ -275,6 +274,7 @@
       <img id="skillIcon30041" src="./img/skill_icons/30041.webp">
       <img id="skillIcon30051" src="./img/skill_icons/30051.webp">
       <img id="skillIcon30071" src="./img/skill_icons/30071.webp">
+      <img id="skillIconUnknown" src="./img/skill_icons/unknown.webp">
     </div>
   </div>
 </body>
