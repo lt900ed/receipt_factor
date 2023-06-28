@@ -73,7 +73,7 @@ const thres_match_tmpl_basic_info = 0.85;
 const thres_match_tmpl_higher = 0.55;
 const thres_match_tmpl_rayout_type = 0.6;
 const thres_match_tmpl_disc = 0.3;
-const thres_match_tmpl_disc_rate = 0.9;
+const thres_match_tmpl_disc_rate = 0.85;
 const thres_header = 0.9;
 
 // パラメータ
@@ -809,6 +809,12 @@ function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
   return new Promise(async function(resolve){
     let l_scroll_canvas = Array.from(eles_scroll_canvas);
     const min_height_factor_text = 30;
+
+    let l_skillnames = Object.keys(dict_skills);
+    l_skillnames = l_skillnames.map(d => d.split('')).flat();
+    char_whitelist = [...new Set(l_skillnames)].join('') + '◯〇';
+    // console.log(char_whitelist);
+
     const worker = await Tesseract.createWorker({
       // corePath: '../../node_modules/tesseract.js-core',
       workerPath: "https://unpkg.com/tesseract.js@4.1.1/dist/worker.min.js",
@@ -816,6 +822,7 @@ function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
     });
     await worker.loadLanguage('jpn');
     await worker.initialize('jpn', 3);
+    // await worker.setParameters({tessedit_char_whitelist: char_whitelist});
     for (let i = 0; i < l_detected_factor.length; i++) {
       for (let j = 0; j < l_detected_factor[i].length; j++) {
         const tmpCanvasElement = document.createElement('canvas');
@@ -831,21 +838,22 @@ function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
           l_detected_factor[i][j].rect_factor_text.width,
           l_detected_factor[i][j].rect_factor_text.height,
           0, 0, w, h);
-        const { data: { text } } = await worker.recognize(tmpCanvasElement, {});
+        const data = await worker.recognize(tmpCanvasElement, {});
+        console.log(data);
         tmpCanvasElement.remove();
         // console.log(text);
-        l_detected_factor[i][j]['factor_text'] = normalize_text(text, regexps);
+        l_detected_factor[i][j]['factor_text'] = normalize_text(data.data.text, regexps);
 
         //アイコン描画
         // console.log(l_detected_factor[i][j].factor_text, l_detected_factor[i][j].factor_text in dict_skills);
         let skill_icon_id = '';
         if (l_detected_factor[i][j].factor_text in dict_skills) {
-          skillicon_id = 'skillIcon' + dict_skills[l_detected_factor[i][j].factor_text].skill_type_index;
+          skill_icon_id = 'skillIcon' + dict_skills[l_detected_factor[i][j].factor_text].iconId;
         } else {
-          skillicon_id = 'skillIconUnknown';
+          skill_icon_id = 'skillIconUnknown';
         }
         l_scroll_canvas[i].getContext('2d').drawImage(
-          document.getElementById(skillicon_id),
+          document.getElementById(skill_icon_id),
           l_detected_factor[i][j].rect_factor_icon.left,
           l_detected_factor[i][j].rect_factor_icon.top,
           l_detected_factor[i][j].rect_factor_icon.width,
@@ -861,10 +869,17 @@ function normalize_text(text, regexps) {
   if (typeof text === 'undefined') {
     return ''
   } else {
-    t = text;
+    let t = text;
     t = hankaku2Zenkaku(t);
     regexps.forEach(r => {
-      t = t.replace(r.pattern, r.rep);
+      while (true) {
+        let t_tmp = t.replace(r.pattern, r.rep);
+        if (t == t_tmp) {
+          break;
+        } else {
+          t = t_tmp;
+        }
+      }
     })
     // console.log(text, t);
     return t
