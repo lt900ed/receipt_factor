@@ -66,7 +66,7 @@ function add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type) {
 }
 
 // しきい値
-const thres_gray = 225;
+const thres_gray = 215;
 const thres_cont_close = 0.1;
 const thres_match_tmpl = 0.8;
 const thres_match_tmpl_basic_info = 0.85;
@@ -279,7 +279,8 @@ function detect_rects(img_in) {
 
   // ヘッダー部分がどのyから始まってるか調査
   let y_start = Math.max(0, Math.floor(rect_whole.whole.y - rect_whole.whole.height / 20));
-  if (y_start + Math.floor(rect_whole.whole.height / 10) > img_in.rows) {
+  let tmp_rect = new cv.Rect(rect_whole.whole.x, y_start, rect_whole.whole.width, Math.floor(rect_whole.whole.height / 10));
+  if (tmp_rect.y + tmp_rect.height > img_in.rows || tmp_rect.x + tmp_rect.width > img_in.cols || tmp_rect.x < 0 || tmp_rect.y < 0) {
     throw new Error('閉じるボタンが正しく検出出来ない画像があります。');
   }
   let img_find_header = img_in.roi(new cv.Rect(rect_whole.whole.x, y_start, rect_whole.whole.width, Math.floor(rect_whole.whole.height / 10))).clone();
