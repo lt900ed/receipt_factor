@@ -846,13 +846,13 @@ function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
         l_detected_factor[i][j]['factor_text'] = normalize_text(data.data.text, regexps);
 
         //アイコン描画
-        // console.log(l_detected_factor[i][j].factor_text, l_detected_factor[i][j].factor_text in dict_skills);
         let skill_icon_id = '';
         if (l_detected_factor[i][j].factor_text in dict_skills) {
           skill_icon_id = 'skillIcon' + dict_skills[l_detected_factor[i][j].factor_text].iconId;
         } else {
           skill_icon_id = 'skillIconUnknown';
         }
+        // console.log(skill_icon_id);
         l_scroll_canvas[i].getContext('2d').drawImage(
           document.getElementById(skill_icon_id),
           l_detected_factor[i][j].rect_factor_icon.left,
@@ -878,6 +878,7 @@ function normalize_text(text, regexps) {
         if (t == t_tmp) {
           break;
         } else {
+          console.log(t_tmp, t);
           t = t_tmp;
         }
       }
