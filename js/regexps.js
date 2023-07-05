@@ -167,7 +167,7 @@ const regexps = [
   {pattern: /壕れ|坪れ|乏れ|霊れ|乖れ/, rep: '垂れ'},
   {pattern: /上げる[慰炎熊難]/, rep: '上げる熱'},
   {pattern: /燦り|燗り/, rep: '焦り'},
-  {pattern: /真け|験け|駿け|眞け|駄け|騒け|督け|肥け|無け/, rep: '駆け'},
+  {pattern: /[真験駿眞駄騒督肥無先騨]け/, rep: '駆け'},
   {pattern: /克駆/, rep: '先駆'},
   {pattern: /[鎖挫衰捕抑痢裏]け/, rep: '抜け'},
   {pattern: /刺腸|刺脈|刹腸/, rep: '別腹'},
