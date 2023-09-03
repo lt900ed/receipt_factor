@@ -118,7 +118,7 @@ const regexps = [
   {pattern: /[華艸罪斐]根幹/, rep: '非根幹'},
   {pattern: /[巧左][者書替曹賞]/, rep: '巧者'},
   {pattern: /[直瞞崎脚睡相][線縄纏緯締綴繕縁繝繚縄繰]/, rep: '直線'},
-  {pattern: /巧者$/, rep: '巧者○'},
+  {pattern: /コーナー巧者$/, rep: '巧者○'},
   {pattern: /直線$/, rep: '直線○'},
   {pattern: /コーナ$/, rep: 'コーナー○'},
   {pattern: /娘$/, rep: '娘○'},
