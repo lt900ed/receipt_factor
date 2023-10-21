@@ -193,6 +193,7 @@ function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element
     }
   })
 };
+// スクロール部分についてグループ毎に連結し別々のキャンバスに出力
 function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, output_div, output_class_name) {
   const n_group = Math.max(...l_group) + 1;
   let w_one_col = Math.min(...imgs.map((e) => e.scroll.cols));
@@ -246,7 +247,13 @@ function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, eles_scr
     l_scale_per_group[current_group] = w_one_col / img_header.header.cols;
     if (show_header) {
       // ヘッダー分の高さを加算
-      tmp_h += img_header.header.rows + img_header.basic_info.rows + img_header.tab.rows;
+      tmp_h += img_header.header.rows;
+      if ('basic_info' in img_header) {
+        tmp_h += img_header.basic_info.rows;
+      }
+      if ('tab' in img_header) {
+        tmp_h += img_header.tab.rows;
+      }
       l_h_header[current_group] = tmp_h;
     }
     // スクロール部の高さを加算
@@ -279,8 +286,12 @@ function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, eles_scr
       let current_group = l_group[i];
       let img = imgs[i];
       drawMat2Canvas(img.header, canvas_element, current_group * w_one_col, 0, w_one_col, img.header.rows * l_scale_per_group[current_group]);
-      drawMat2Canvas(img.basic_info, canvas_element, current_group * w_one_col, img.header.rows * l_scale_per_group[current_group], w_one_col, img.basic_info.rows * l_scale_per_group[current_group]);
-      drawMat2Canvas(img.tab, canvas_element, current_group * w_one_col, (img.header.rows + img.basic_info.rows) * l_scale_per_group[current_group], w_one_col, img.tab.rows * l_scale_per_group[current_group]);
+      if ('basic_info' in img) {
+        drawMat2Canvas(img.basic_info, canvas_element, current_group * w_one_col, img.header.rows * l_scale_per_group[current_group], w_one_col, img.basic_info.rows * l_scale_per_group[current_group]);
+      }
+      if ('tab' in img) {
+        drawMat2Canvas(img.tab, canvas_element, current_group * w_one_col, (img.header.rows + img.basic_info.rows) * l_scale_per_group[current_group], w_one_col, img.tab.rows * l_scale_per_group[current_group]);
+      }
     })
   }
   // スクロール部を描画
@@ -367,6 +378,7 @@ async function generatePhoto() {
     };
     // メイン加工関数呼び出し
     let l_rects = await get_rects(l_mat);
+    console.log(l_rects);
     if (is_show_skill_icon) {changePercentage(5)} else {changePercentage(10)};
     await repaint();
     let imgs = await trim_parts(l_mat, l_rects);
@@ -446,7 +458,9 @@ async function generatePhoto() {
     // dst.forEach(function(m){m.delete();});
     imgs.forEach(function(i){
       load_parts.forEach(function(p){
-        i[p].delete();
+        if (p in i) {
+          i[p].delete();
+        }
       })
     });
     // スクロール部Canvas削除

@@ -17,7 +17,6 @@ const rect_prop = {
   close: [539, 1828, 458, 132],
   whole: [x_full, 51, width_full, 1910],
   scroll: [x_narrow, 947, width_narrow, 829],
-  bottom_row: [x_narrow, 1696, width_narrow, 80],
   icon: [347, 235, 150, 150],
   eval_val: [357, 427, 133, 37],
   speed_val: [315, 556, 103, 37],
@@ -25,6 +24,12 @@ const rect_prop = {
   register_partner: [541, 880, 454, 129],
   factor_disc_left: [427, 0, 36, 36],
   factor_icon_left: [418, 0, 54, 54],
+  factor_text_left: [469, 0, 372, 33],
+  header_text_result_table: [686, 74, 165, 61],
+  header_text_uma_detail: [639, 74, 258, 61],
+  header_text_score_info: [639, 74, 258, 61],
+  header_text_score_detail: [639, 74, 258, 61],
+  header_text_field: [639, 74, 258, 61],
   factor_text_left: [469, 0, 372, 33],
 };
 rect_prop['header'] = [rect_prop['whole'][0], rect_prop['whole'][1], rect_prop['whole'][2], 100];
@@ -42,6 +47,22 @@ const rect_prop_dynamic = {
       basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], rect_prop.basic_info[3] + 205],
       scroll: [x_narrow, rect_prop.scroll[1] + 192, width_narrow, rect_prop.scroll[3] - 192],
   },
+  result_table: {
+    basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 641],
+    scroll: [x_narrow, rect_prop.scroll[1] - 155, width_narrow, rect_prop.scroll[3] + 163],
+  },
+  score_info: {
+    basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], 0, 0],
+    scroll: [x_narrow, rect_prop.scroll[1] - 781, width_narrow, rect_prop.scroll[3] + 789],
+  },
+  score_detail: {
+    basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 239],
+    scroll: [x_narrow, rect_prop.scroll[1] - 557, width_narrow, rect_prop.scroll[3] + 555],
+  },
+  field: {
+    basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], 0, 0],
+    scroll: [x_narrow, rect_prop.scroll[1] - 781, width_narrow, rect_prop.scroll[3] + 714],
+  },
 }
 
 function add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type) {
@@ -54,6 +75,7 @@ function add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type) {
       dict_out[key] = rect_prop_dynamic[rayout_type][key];
     });
   }
+  dict_out['bottom_row'] = [rect_prop['scroll'][0], rect_prop['scroll'][1] + rect_prop['scroll'][3] - 80, rect_prop['scroll'][2], 80];
   dict_out['bottom_row_higher'] = [dict_out['bottom_row'][0], dict_out['bottom_row'][1] - 60, dict_out['bottom_row'][2], dict_out['bottom_row'][3] + 60];
   dict_out['scroll_with_header'] = [dict_out['whole'][0], dict_out['whole'][1], dict_out['whole'][2], dict_out['scroll'][1] + dict_out['scroll'][3] - dict_out['whole'][1]];
   dict_out['scroll_full_width'] = [dict_out['whole'][0], dict_out['scroll'][1], dict_out['whole'][2], dict_out['scroll'][3]];
@@ -78,7 +100,9 @@ const thres_header = 0.9;
 
 // パラメータ
 const force_one_group = false;
-const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll', 'bottom_row', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
+const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
+const load_parts_simple = ['header', 'basic_info', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
+const load_parts_scroll_only = ['header', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
 const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
 
 function vconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
@@ -321,32 +345,86 @@ function detect_rects(img_in) {
   // 枠座標を再計算
   let rects_base = calc_rects(rect_close, rect_prop);
   // レイアウトを取得
+  let arr_rayout_score = [];
   let rayout_type = 'normal';
-  let img_tgt = img_in.roi(new cv.Rect(rects_base.growth_rate.x - 2, rects_base.growth_rate.y - 2, rects_base.growth_rate.width + 4, rects_base.growth_rate.height + 4));
-  let img_tmpl = cv.imread(document.getElementById('tmplGrowthRate'));
+  // レイアウト毎にスコアを算出
+  img_tgt = img_in.roi(new cv.Rect(rects_base.header_text_result_table.x - 2, rects_base.header_text_result_table.y - 2, rects_base.header_text_result_table.width + 4, rects_base.header_text_result_table.height + 4));
+  img_tmpl = cv.imread(document.getElementById('tmplHeaderTextResultTable'));
   cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
-  let tmp_dst = new cv.Mat();
-  cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.growth_rate.width, rects_base.growth_rate.height), 0, 0);
-  if (match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal > thres_match_tmpl_rayout_type) {
-    rayout_type = 'with_growth_rate';
-  } else {
+  tmp_dst = new cv.Mat();
+  cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_result_table.width, rects_base.header_text_result_table.height), 0, 0);
+  arr_rayout_score.push({'rayout_type': 'result_table', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
+  img_tgt = img_in.roi(new cv.Rect(rects_base.header_text_score_info.x - 2, rects_base.header_text_score_info.y - 2, rects_base.header_text_score_info.width + 4, rects_base.header_text_score_info.height + 4));
+  img_tmpl = cv.imread(document.getElementById('tmplHeaderTextScoreInfo'));
+  cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+  tmp_dst = new cv.Mat();
+  cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_score_info.width, rects_base.header_text_score_info.height), 0, 0);
+  arr_rayout_score.push({'rayout_type': 'score_info', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
+  // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
+  img_tmpl = cv.imread(document.getElementById('tmplHeaderTextUmaDetail'));
+  cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+  tmp_dst = new cv.Mat();
+  cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_score_detail.width, rects_base.header_text_score_detail.height), 0, 0);
+  arr_rayout_score.push({'rayout_type': 'uma_detail', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
+  // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
+  img_tmpl = cv.imread(document.getElementById('tmplHeaderTextScoreDetail'));
+  cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+  tmp_dst = new cv.Mat();
+  cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_score_detail.width, rects_base.header_text_score_detail.height), 0, 0);
+  arr_rayout_score.push({'rayout_type': 'score_detail', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
+  // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
+  img_tmpl = cv.imread(document.getElementById('tmplHeaderTextField'));
+  cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+  tmp_dst = new cv.Mat();
+  cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_field.width, rects_base.header_text_field.height), 0, 0);
+  arr_rayout_score.push({'rayout_type': 'field', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
+  // 最もスコアの高いレイアウトを選択、しきい値より高ければ採用
+  arr_rayout_score.sort((a, b) => b.score - a.score);
+  if (arr_rayout_score[0].score > thres_match_tmpl_rayout_type) {
+    rayout_type = arr_rayout_score[0].rayout_type;
+  }
+
+  if (rayout_type == 'uma_detail') {
+    // ウマ娘詳細画面の中でレイアウト特定
+    arr_rayout_score = [];
+    let img_tgt = img_in.roi(new cv.Rect(rects_base.growth_rate.x - 2, rects_base.growth_rate.y - 2, rects_base.growth_rate.width + 4, rects_base.growth_rate.height + 4));
+    let img_tmpl = cv.imread(document.getElementById('tmplGrowthRate'));
+    cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+    let tmp_dst = new cv.Mat();
+    cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.growth_rate.width, rects_base.growth_rate.height), 0, 0);
+    arr_rayout_score.push({'rayout_type': 'with_growth_rate', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
     img_tgt = img_in.roi(new cv.Rect(rects_base.register_partner.x - 2, rects_base.register_partner.y - 2, rects_base.register_partner.width + 4, rects_base.register_partner.height + 4));
     img_tmpl = cv.imread(document.getElementById('tmplRegisterPartner'));
     cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
     tmp_dst = new cv.Mat();
     cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.register_partner.width, rects_base.register_partner.height), 0, 0);
-    if (match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal > thres_match_tmpl_rayout_type) {
-      rayout_type = 'with_register_partner';
-    } else {
-      img_tmpl = cv.imread(document.getElementById('tmplUnregisterPartner'));
-      cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
-      tmp_dst = new cv.Mat();
-      cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.register_partner.width, rects_base.register_partner.height), 0, 0);
-      if (match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal > thres_match_tmpl_rayout_type) {
+    arr_rayout_score.push({'rayout_type': 'with_register_partner', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
+    // パートナー登録とターゲット画像の座標が同じなのでimg_tgtの生成は省略
+    img_tmpl = cv.imread(document.getElementById('tmplUnregisterPartner'));
+    cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+    tmp_dst = new cv.Mat();
+    cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.register_partner.width, rects_base.register_partner.height), 0, 0);
+    arr_rayout_score.push({'rayout_type': 'with_unregister_partner', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
+    // 最もスコアの高いレイアウトを選択、しきい値より高ければ採用
+    arr_rayout_score.sort((a, b) => b.score - a.score);
+    if (arr_rayout_score[0].score > thres_match_tmpl_rayout_type) {
+      rayout_type = arr_rayout_score[0].rayout_type;
+      if (rayout_type == 'with_unregister_partner') {
         rayout_type = 'with_register_partner';
       }
+    } else {
+      rayout_type = 'normal';
     }
   }
+
   img_tgt.delete();
   img_tmpl.delete();
   tmp_dst.delete();
@@ -415,7 +493,7 @@ function trim_parts(l_mat, l_rects) {
     const n_tgt = l_mat.length;
     // レイアウトxパーツ毎の最小サイズを算出
     let tgt_sizes = {};
-    ['normal', 'with_growth_rate', 'with_register_partner'].forEach(function(r){
+    ['normal', 'with_growth_rate', 'with_register_partner', 'result_table', 'score_info', 'score_detail', 'field'].forEach(function(r){
       if (l_rects.filter((e) => e.rayout_type == r).length > 0) {
         tgt_sizes[r] = {};
         load_parts.forEach(function(p){
@@ -429,7 +507,15 @@ function trim_parts(l_mat, l_rects) {
     let imgs = [];
     l_mat.forEach(function(m, i){
       let obj_tmp = {};
-      load_parts.forEach(function(p){
+      let tgt_load_parts = [];
+      if (['normal', 'with_growth_rate', 'with_register_partner'].includes(l_rects[i].rayout_type)) {
+        tgt_load_parts = load_parts;
+      } else if (['result_table', 'score_detail'].includes(l_rects[i].rayout_type)) {
+        tgt_load_parts = load_parts_simple;
+      } else {
+        tgt_load_parts = load_parts_scroll_only;
+      }
+      tgt_load_parts.forEach(function(p){
         let tmp_mat = new cv.Mat();
         let tmp_dst = new cv.Mat();
         tmp_mat = m.roi(l_rects[i].rects[p]).clone();
@@ -438,6 +524,7 @@ function trim_parts(l_mat, l_rects) {
         tmp_mat.delete();
         tmp_dst.delete();
       });
+      obj_tmp['rayout_type'] = l_rects[i].rayout_type;
       imgs.push(obj_tmp);
     });
     resolve(imgs);
@@ -467,11 +554,14 @@ function get_group_list(imgs, l_rects) {
         imgs.forEach(function(img_tgt, j){
           // 同じ組み合わせで二回チェックしないようjの方が大きい時
           // かつ両者のレイアウトタイプが一致する時だけチェック
-          // 同値の時は同じ画像同士=100%一致なので無視
+          // i == jの時は同じ画像同士=100%一致なので無視
           if (i < j) {
             if (l_rects[i].rayout_type != l_rects[j].rayout_type) {
               // レイアウトタイプが異なっていたら100%別グループとして0を強制代入
               arr_val[Math.min(i, j)][Math.max(i, j)] = 0;
+            } else if (['result_table', 'score_info', 'score_detail', 'field'].includes(l_rects[i].rayout_type)) {
+              // シンプルレイアウトはレイアウトタイプが一致していれば強制的に100%同じグループとして1を強制代入
+              arr_val[Math.min(i, j)][Math.max(i, j)] = 1;
             } else {
               // パーツ毎にテンプレートマッチ
               tgt_parts_for_group.forEach(function(p){
@@ -507,11 +597,22 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
     imgs.forEach(function(img_tgt, j){
       // 同じ画像ではなく、かつ同じグループだったら比較開始
       if (i != j && l_group[i] == l_group[j]) {
-        let res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row);
+        // シンプルレイアウトなら比較範囲を拡大
+        let res = {};
+        if (['result_table', 'score_info', 'score_detail', 'field'].includes(img_tmpl.rayout_type)) {
+          res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row_higher);
+        } else {
+          res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row);
+        }
         // 1行分の範囲でヒットしたら重なってるはずのエリアで改めてヒットするか確認
         if (arr_val[Math.min(i, j)][Math.max(i, j)] < res.maxVal && thres_match_tmpl < res.maxVal) {
           // console.log(i, j);
-          let dist = img_tgt.scroll.rows - img_tmpl.bottom_row.rows - res.maxLoc.y;
+          let dist = 0;
+          if (['result_table', 'score_info', 'score_detail', 'field'].includes(img_tmpl.rayout_type)) {
+            dist = img_tgt.scroll.rows - img_tmpl.bottom_row_higher.rows - res.maxLoc.y;
+          } else {
+            dist = img_tgt.scroll.rows - img_tmpl.bottom_row.rows - res.maxLoc.y;
+          }
           let tmp_img_tgt = new cv.Mat();
           let tmp_img_tmpl = new cv.Mat();
           if (i >= j) {
