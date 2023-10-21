@@ -203,7 +203,7 @@ function detect_rects(img_in) {
   let hierarchy = new cv.Mat();
   let mv_contours_only_large = new cv.MatVector();
 
-  // Canny方でエッジ検出
+  // Canny法でエッジ検出
   let img_gray = img_in.clone();
   cv.cvtColor(img_gray, img_gray, cv.COLOR_RGBA2GRAY, 0);
   cv.Canny(img_gray, img_gray, 50, 200, 3);
@@ -296,7 +296,10 @@ function detect_rects(img_in) {
   };
   // console.log('rect_close_area', cv.contourArea(cont_out[0]));
   let rect_close = cv.boundingRect(cont_out[0]);
+  // 閉じるが横にズレていた時のため座標をセンタリング
+  rect_close.x = Math.round(img_in.cols / 2 - rect_close.width / 2);
   // 一度wholeの枠座標を計算
+  console.log(rect_close);
   let rect_whole = calc_rects(rect_close, {'whole': rect_prop.whole, 'close': rect_prop.close});
   // console.log(rect_close);
   // console.log(rect_whole);
@@ -573,7 +576,7 @@ function get_group_list(imgs, l_rects) {
           }
         })
       })
-      // console.log(arr_val);
+      console.log(arr_val);
       let current_group = -1;
       [...Array(n_tgt).keys()].forEach(function(i){
         if (l_group[i] == null) {
