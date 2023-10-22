@@ -30,6 +30,7 @@ const rect_prop = {
   header_text_score_info: [639, 74, 258, 61],
   header_text_score_detail: [639, 74, 258, 61],
   header_text_field: [639, 74, 258, 61],
+  header_text_race_detail: [639, 74, 258, 61],
   factor_text_left: [469, 0, 372, 33],
 };
 rect_prop['header'] = [rect_prop['whole'][0], rect_prop['whole'][1], rect_prop['whole'][2], 100];
@@ -62,6 +63,10 @@ const rect_prop_dynamic = {
   field: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], 0, 0],
     scroll: [x_narrow, rect_prop.scroll[1] - 781, width_narrow, rect_prop.scroll[3] + 714],
+  },
+  race_detail: {
+    basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 705],
+    scroll: [x_narrow, 856, width_narrow, 920],
   },
 }
 
@@ -386,6 +391,13 @@ function detect_rects(img_in) {
   cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_field.width, rects_base.header_text_field.height), 0, 0);
   arr_rayout_score.push({'rayout_type': 'field', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
+  // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
+  img_tmpl = cv.imread(document.getElementById('tmplHeaderTextRaceDetail'));
+  cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+  tmp_dst = new cv.Mat();
+  cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_race_detail.width, rects_base.header_text_race_detail.height), 0, 0);
+  arr_rayout_score.push({'rayout_type': 'race_detail', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
   // 最もスコアの高いレイアウトを選択、しきい値より高ければ採用
   arr_rayout_score.sort((a, b) => b.score - a.score);
   if (arr_rayout_score[0].score > thres_match_tmpl_rayout_type) {
@@ -496,7 +508,7 @@ function trim_parts(l_mat, l_rects) {
     const n_tgt = l_mat.length;
     // レイアウトxパーツ毎の最小サイズを算出
     let tgt_sizes = {};
-    ['normal', 'with_growth_rate', 'with_register_partner', 'result_table', 'score_info', 'score_detail', 'field'].forEach(function(r){
+    ['normal', 'with_growth_rate', 'with_register_partner', 'result_table', 'score_info', 'score_detail', 'field', 'race_detail'].forEach(function(r){
       if (l_rects.filter((e) => e.rayout_type == r).length > 0) {
         tgt_sizes[r] = {};
         load_parts.forEach(function(p){
@@ -513,7 +525,7 @@ function trim_parts(l_mat, l_rects) {
       let tgt_load_parts = [];
       if (['normal', 'with_growth_rate', 'with_register_partner'].includes(l_rects[i].rayout_type)) {
         tgt_load_parts = load_parts;
-      } else if (['result_table', 'score_detail'].includes(l_rects[i].rayout_type)) {
+      } else if (['result_table', 'score_detail', 'race_detail'].includes(l_rects[i].rayout_type)) {
         tgt_load_parts = load_parts_simple;
       } else {
         tgt_load_parts = load_parts_scroll_only;
@@ -521,6 +533,7 @@ function trim_parts(l_mat, l_rects) {
       tgt_load_parts.forEach(function(p){
         let tmp_mat = new cv.Mat();
         let tmp_dst = new cv.Mat();
+        console.log(p, l_rects[i].rects[p]);
         tmp_mat = m.roi(l_rects[i].rects[p]).clone();
         cv.resize(tmp_mat, tmp_dst, tgt_sizes[l_rects[i].rayout_type][p]);
         obj_tmp[p] = tmp_dst.clone();
@@ -562,7 +575,7 @@ function get_group_list(imgs, l_rects) {
             if (l_rects[i].rayout_type != l_rects[j].rayout_type) {
               // レイアウトタイプが異なっていたら100%別グループとして0を強制代入
               arr_val[Math.min(i, j)][Math.max(i, j)] = 0;
-            } else if (['result_table', 'score_info', 'score_detail', 'field'].includes(l_rects[i].rayout_type)) {
+            } else if (['result_table', 'score_info', 'score_detail', 'field', 'race_detail'].includes(l_rects[i].rayout_type)) {
               // シンプルレイアウトはレイアウトタイプが一致していれば強制的に100%同じグループとして1を強制代入
               arr_val[Math.min(i, j)][Math.max(i, j)] = 1;
             } else {
@@ -602,7 +615,7 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
       if (i != j && l_group[i] == l_group[j]) {
         // シンプルレイアウトなら比較範囲を拡大
         let res = {};
-        if (['result_table', 'score_info', 'score_detail', 'field'].includes(img_tmpl.rayout_type)) {
+        if (['result_table', 'score_info', 'score_detail', 'field', 'race_detail'].includes(img_tmpl.rayout_type)) {
           res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row_higher);
         } else {
           res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row);
@@ -611,7 +624,7 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
         if (arr_val[Math.min(i, j)][Math.max(i, j)] < res.maxVal && thres_match_tmpl < res.maxVal) {
           // console.log(i, j);
           let dist = 0;
-          if (['result_table', 'score_info', 'score_detail', 'field'].includes(img_tmpl.rayout_type)) {
+          if (['result_table', 'score_info', 'score_detail', 'field', 'race_detail'].includes(img_tmpl.rayout_type)) {
             dist = img_tgt.scroll.rows - img_tmpl.bottom_row_higher.rows - res.maxLoc.y;
           } else {
             dist = img_tgt.scroll.rows - img_tmpl.bottom_row.rows - res.maxLoc.y;
