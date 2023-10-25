@@ -207,6 +207,7 @@ function detect_rects(img_in) {
   let mv_contours = new cv.MatVector();
   let hierarchy = new cv.Mat();
   let mv_contours_only_large = new cv.MatVector();
+  let rayout_type = 'none';
 
   // Canny法でエッジ検出
   let img_gray = img_in.clone();
@@ -297,6 +298,7 @@ function detect_rects(img_in) {
     }
   };
   if (cont_out.length == 0) {
+    rayout_type = 'unknown';
     throw new Error('閉じるボタンが正常に検出出来ない画像があります。');
   };
   // console.log('rect_close_area', cv.contourArea(cont_out[0]));
@@ -354,7 +356,12 @@ function detect_rects(img_in) {
   let rects_base = calc_rects(rect_close, rect_prop);
   // レイアウトを取得
   let arr_rayout_score = [];
-  let rayout_type = 'normal';
+
+  let img_tgt = new cv.Mat();
+  let img_tmpl = new cv.Mat();
+  let tmp_dst = new cv.Mat();
+
+  // 着順表かチェック
   // レイアウト毎にスコアを算出
   img_tgt = img_in.roi(new cv.Rect(rects_base.header_text_result_table.x - 2, rects_base.header_text_result_table.y - 2, rects_base.header_text_result_table.width + 4, rects_base.header_text_result_table.height + 4));
   img_tmpl = cv.imread(document.getElementById('tmplHeaderTextResultTable'));
@@ -363,6 +370,7 @@ function detect_rects(img_in) {
   cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_result_table.width, rects_base.header_text_result_table.height), 0, 0);
   arr_rayout_score.push({'rayout_type': 'result_table', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
+  // チムレスコア情報かチェック
   img_tgt = img_in.roi(new cv.Rect(rects_base.header_text_score_info.x - 2, rects_base.header_text_score_info.y - 2, rects_base.header_text_score_info.width + 4, rects_base.header_text_score_info.height + 4));
   img_tmpl = cv.imread(document.getElementById('tmplHeaderTextScoreInfo'));
   cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
@@ -370,13 +378,15 @@ function detect_rects(img_in) {
   cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_score_info.width, rects_base.header_text_score_info.height), 0, 0);
   arr_rayout_score.push({'rayout_type': 'score_info', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
-  // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
+  // ウマ娘詳細かチェック
+  // チムレスコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
   img_tmpl = cv.imread(document.getElementById('tmplHeaderTextUmaDetail'));
   cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
   tmp_dst = new cv.Mat();
   cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_score_detail.width, rects_base.header_text_score_detail.height), 0, 0);
   arr_rayout_score.push({'rayout_type': 'uma_detail', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
+  // チムレスコア詳細かチェック
   // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
   img_tmpl = cv.imread(document.getElementById('tmplHeaderTextScoreDetail'));
   cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
@@ -384,6 +394,7 @@ function detect_rects(img_in) {
   cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_score_detail.width, rects_base.header_text_score_detail.height), 0, 0);
   arr_rayout_score.push({'rayout_type': 'score_detail', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
+  // 出走ウマ娘かチェック
   // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
   img_tmpl = cv.imread(document.getElementById('tmplHeaderTextField'));
   cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
@@ -391,6 +402,7 @@ function detect_rects(img_in) {
   cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_field.width, rects_base.header_text_field.height), 0, 0);
   arr_rayout_score.push({'rayout_type': 'field', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
+  // レース詳細かチェック
   // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
   img_tmpl = cv.imread(document.getElementById('tmplHeaderTextRaceDetail'));
   cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
@@ -407,6 +419,8 @@ function detect_rects(img_in) {
   if (rayout_type == 'uma_detail') {
     // ウマ娘詳細画面の中でレイアウト特定
     arr_rayout_score = [];
+
+    // 成長率付きかチェック
     let img_tgt = img_in.roi(new cv.Rect(rects_base.growth_rate.x - 2, rects_base.growth_rate.y - 2, rects_base.growth_rate.width + 4, rects_base.growth_rate.height + 4));
     let img_tmpl = cv.imread(document.getElementById('tmplGrowthRate'));
     cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
@@ -414,6 +428,7 @@ function detect_rects(img_in) {
     cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.growth_rate.width, rects_base.growth_rate.height), 0, 0);
     arr_rayout_score.push({'rayout_type': 'with_growth_rate', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
+    // パートナー登録ボタン付きかチェック
     img_tgt = img_in.roi(new cv.Rect(rects_base.register_partner.x - 2, rects_base.register_partner.y - 2, rects_base.register_partner.width + 4, rects_base.register_partner.height + 4));
     img_tmpl = cv.imread(document.getElementById('tmplRegisterPartner'));
     cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
@@ -421,6 +436,7 @@ function detect_rects(img_in) {
     cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.register_partner.width, rects_base.register_partner.height), 0, 0);
     arr_rayout_score.push({'rayout_type': 'with_register_partner', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
+    // パートナー解除ボタン付きかチェック
     // パートナー登録とターゲット画像の座標が同じなのでimg_tgtの生成は省略
     img_tmpl = cv.imread(document.getElementById('tmplUnregisterPartner'));
     cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
@@ -431,6 +447,7 @@ function detect_rects(img_in) {
     // 最もスコアの高いレイアウトを選択、しきい値より高ければ採用
     arr_rayout_score.sort((a, b) => b.score - a.score);
     if (arr_rayout_score[0].score > thres_match_tmpl_rayout_type) {
+      // パートナー解除ボタン付きはパートナー登録ボタン付きとレイアウト同じなので読み替え
       rayout_type = arr_rayout_score[0].rayout_type;
       if (rayout_type == 'with_unregister_partner') {
         rayout_type = 'with_register_partner';
