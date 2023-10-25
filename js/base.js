@@ -130,6 +130,7 @@ function drawMat2Canvas(mat, canvas_element, x, y, width=-1, height=-1) {
   tmpCanvasElement.remove();
 }
 function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element, show_header) {
+  // 2023/10/25 未使用
   const show_close = false;
   const n_group = Math.max(...l_group) + 1;
   let w_one_col = Math.min(...imgs.map((e) => e.header.cols));
@@ -196,13 +197,13 @@ function outputPartsList2Canvas(imgs, l_group, l_relative_height, canvas_element
 // スクロール部分についてグループ毎に連結し別々のキャンバスに出力
 function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, output_div, output_class_name) {
   const n_group = Math.max(...l_group) + 1;
-  let w_one_col = Math.min(...imgs.map((e) => e.scroll.cols));
+  let w_one_col = Math.min(...imgs.map((e) => e.scroll_full_width.cols));
   let l_max_rh = new Array(n_group).fill(0);
   [...Array(n_group).keys()].forEach(function(current_group){
     let tmp_h = 0;
     let img_header = imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == 0)[0];
     // グループ毎の縮尺を算出
-    let tmp_scale = w_one_col / img_header.scroll.cols;
+    let tmp_scale = w_one_col / img_header.scroll_full_width.cols;
     // キャンバスの高さ算出
     // 一番下の画像の相対座標を加算
     l_max_rh[current_group] = Math.max(...l_relative_height.filter((d, i) => l_group[i] == current_group));
@@ -235,7 +236,7 @@ function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, eles_scr
   const show_close = false;
   const n_group = Math.max(...l_group) + 1;
   let l_scroll_canvas = Array.from(eles_scroll_canvas);
-  let w_one_col = Math.min(...imgs.map((e) => e.header.cols));
+  let w_one_col = Math.min(...imgs.map((e) => e.scroll_full_width.cols));
   let l_h_header = new Array(n_group).fill(0);
   let l_max_rh = new Array(n_group).fill(0);
   let l_scale_per_group = new Array(n_group).fill(1);
@@ -244,10 +245,12 @@ function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, eles_scr
     let tmp_h = 0;
     let img_header = imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == 0)[0];
     // グループ毎の縮尺を取得
-    l_scale_per_group[current_group] = w_one_col / img_header.header.cols;
+    l_scale_per_group[current_group] = w_one_col / img_header.scroll_full_width.cols;
     if (show_header) {
       // ヘッダー分の高さを加算
-      tmp_h += img_header.header.rows;
+      if ('header' in img_header) {
+        tmp_h += img_header.header.rows;
+      }
       if ('basic_info' in img_header) {
         tmp_h += img_header.basic_info.rows;
       }
@@ -285,7 +288,9 @@ function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, eles_scr
     l_index_header.forEach(function(i) {
       let current_group = l_group[i];
       let img = imgs[i];
-      drawMat2Canvas(img.header, canvas_element, current_group * w_one_col, 0, w_one_col, img.header.rows * l_scale_per_group[current_group]);
+      if ('header' in img) {
+        drawMat2Canvas(img.header, canvas_element, current_group * w_one_col, 0, w_one_col, img.header.rows * l_scale_per_group[current_group]);
+      }
       if ('basic_info' in img) {
         drawMat2Canvas(img.basic_info, canvas_element, current_group * w_one_col, img.header.rows * l_scale_per_group[current_group], w_one_col, img.basic_info.rows * l_scale_per_group[current_group]);
       }
@@ -378,9 +383,12 @@ async function generatePhoto() {
     };
     // メイン加工関数呼び出し
     let l_rects = await get_rects(l_mat);
-    console.log(l_rects);
     if (is_show_skill_icon) {changePercentage(5)} else {changePercentage(10)};
     await repaint();
+    if (l_rects.filter((e) => e.rayout_type == 'unknown').length >= 1) {
+      await get_unknown_rects(l_mat, l_rects);
+    }
+    console.log(l_rects);
     let imgs = await trim_parts(l_mat, l_rects);
     if (is_show_skill_icon) {changePercentage(10)} else {changePercentage(20)};
     await repaint();
