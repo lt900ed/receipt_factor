@@ -348,7 +348,7 @@ function detect_rects(img_in) {
     // 閉じるが横にズレていた時のため座標をセンタリング
     rect_close.x = Math.round(img_in.cols / 2 - rect_close.width / 2);
     // 一度wholeの枠座標を計算
-    console.log(rect_close);
+    // console.log(rect_close);
     let rect_whole = calc_rects(rect_close, {'whole': rect_prop.whole, 'close': rect_prop.close});
     // console.log(rect_close);
     // console.log(rect_whole);
