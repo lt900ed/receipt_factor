@@ -102,7 +102,8 @@ const thres_match_tmpl_rayout_type = 0.6;
 const thres_match_tmpl_disc = 0.3;
 const thres_match_tmpl_disc_rate = 0.85;
 const thres_header = 0.9;
-const thres_common_diff = 20;
+const thres_common_diff_y1 = 20;
+const thres_common_diff_y2 = 12;
 
 // パラメータ
 const force_one_group = false;
@@ -227,13 +228,18 @@ function smoothing_list(l, window_size) {
 }
 function detect_common_scroll_area(l, l_smooth, window_size) {
   let out = {};
-  let tmp_y1 = l_smooth.findIndex(e => e > thres_common_diff);
+  let tmp_y1 = l_smooth.findIndex(e => e > thres_common_diff_y1);
   if (tmp_y1 != -1) {
-    tmp_y1 = l.findIndex((e, i) => i >= tmp_y1 && e > thres_common_diff);
+    tmp_y1 = l.findIndex((e, i) => i >= tmp_y1 && e > thres_common_diff_y1);
   }
-  let tmp_y2 = l_smooth.findLastIndex(e => e > thres_common_diff);
+  let tmp_y2 = l_smooth.findLastIndex(e => e > thres_common_diff_y2);
   if (tmp_y2 != -1) {
-    tmp_y2 = l.findLastIndex((e, i) => i <= tmp_y2 + window_size && e > thres_common_diff);
+    tmp_y2 = l.findLastIndex((e, i) =>
+      i <= tmp_y2 + window_size &&
+      // e > thres_common_diff_y2);
+      e > thres_common_diff_y2 &&
+      // bottom_rowで参照される範囲に固定表示エリアがない
+      l_smooth.slice(i - Math.floor((i - tmp_y1) / 16), i).filter(f => f <= thres_common_diff_y2).length == 0);
   }
   return {'y1': tmp_y1, 'y2': tmp_y2}
 }
@@ -611,18 +617,18 @@ function get_unknown_rects(l_mat, l_rects) {
         }
         // 結果の平滑化
         let l_sum_diff_by_y_smooth = smoothing_list(l_sum_diff_by_y, diff_window_size);
-        // console.log(l_sum_diff_by_y);
-        console.log(l_sum_diff_by_y_smooth);
+        // console.log(l_sum_diff_by_y.join('\n'));
+        // console.log(l_sum_diff_by_y_smooth.join('\n'));
         // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
         let tmp_area = detect_common_scroll_area(l_sum_diff_by_y, l_sum_diff_by_y_smooth, diff_window_size);
-        console.log(tmp_area);
+        // console.log(tmp_area);
         if (tmp_area.y1 != -1) {
           // スクロール範囲が見つかったら上書き、見つからなければ完全一致画像として何もしない
           tmp_y1 = Math.min(tmp_y1, tmp_area.y1);
           tmp_y2 = Math.max(tmp_y2, tmp_area.y2);
         }
       })
-      console.log(tmp_y1, tmp_y2);
+      // console.log(tmp_y1, tmp_y2);
 
       // 全部のunknown画像で一番広いスクロール範囲を採用して各画像のrectsを生成
       l_index_tgt.forEach(function(i){
@@ -818,7 +824,7 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
             tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows - dist)).clone();
           }
           let tmp_res = match_tmpl_min_max_loc(tmp_img_tgt, tmp_img_tmpl);
-          console.log(i, j, res.maxVal, tmp_res.maxVal, dist);
+          // console.log(i, j, res.maxVal, tmp_res.maxVal, dist);
           if (thres_match_tmpl_higher < tmp_res.maxVal) {
             arr_val[Math.min(i, j)][Math.max(i, j)] = res.maxVal;
             arr_loc[Math.min(i, j)][Math.max(i, j)] = dist;
@@ -910,7 +916,7 @@ function get_relative_dist(arr_val, arr_loc, l_group) {
       }
       // 最も上の画像に対する相対座標に変換
       let min_relative_height = Math.min(...l_relative_height.filter((d, i) => l_group[i] == current_group));
-      console.log(l_relative_height, min_relative_height);
+      // console.log(l_relative_height, min_relative_height);
       for (let i = 0; i < l_relative_height.length; i++) {
         if(l_group[i] == current_group && l_relative_height[i] != null) {
           l_relative_height[i] -= min_relative_height;
