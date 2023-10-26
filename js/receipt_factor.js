@@ -31,6 +31,7 @@ const rect_prop = {
   header_text_score_detail: [639, 74, 258, 61],
   header_text_field: [639, 74, 258, 61],
   header_text_race_detail: [639, 74, 258, 61],
+  header_text_gougai: [506, 74, 524, 61],
   factor_text_left: [469, 0, 372, 33],
 };
 rect_prop['header'] = [rect_prop['whole'][0], rect_prop['whole'][1], rect_prop['whole'][2], 100];
@@ -62,11 +63,15 @@ const rect_prop_dynamic = {
   },
   field: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], 0, 0],
-    scroll: [x_narrow, rect_prop.scroll[1] - 781, width_narrow, rect_prop.scroll[3] + 714],
+    scroll: [x_narrow, 166, width_narrow, 1543],
   },
   race_detail: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 705],
     scroll: [x_narrow, 856, width_narrow, 920],
+  },
+  gougai: {
+    basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 962],
+    scroll: [x_narrow, 1113, width_narrow, 665],
   },
 }
 
@@ -107,7 +112,7 @@ const thres_common_diff_y2 = 12;
 
 // パラメータ
 const force_one_group = false;
-const all_rayout_type = ['normal', 'with_growth_rate', 'with_register_partner', 'result_table', 'score_info', 'score_detail', 'field', 'race_detail', 'common_scroll_only', 'common_header_scroll'];
+const all_rayout_type = ['normal', 'with_growth_rate', 'with_register_partner', 'result_table', 'score_info', 'score_detail', 'field', 'race_detail', 'gougai', 'common_scroll_only', 'common_header_scroll'];
 const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
 const load_parts_simple = ['header', 'basic_info', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
 const load_parts_more_simple = ['header', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
@@ -122,6 +127,7 @@ const load_parts_by_rayout_type = {
   'score_detail': load_parts_simple,
   'field': load_parts_more_simple,
   'race_detail': load_parts_simple,
+  'gougai': load_parts_simple,
   'common_scroll_only': load_parts_scroll_only,
   'common_header_scroll': load_parts_more_simple,
 }
@@ -454,6 +460,15 @@ function detect_rects(img_in) {
       cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_race_detail.width, rects_base.header_text_race_detail.height), 0, 0);
       arr_rayout_score.push({'rayout_type': 'race_detail', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
 
+      // 号外かチェック
+      // スコア情報とターゲット画像の座標が同じなのでimg_tgtの生成は省略
+      img_tgt = img_in.roi(new cv.Rect(Math.max(rects_base.header_text_gougai.x - 2, 0), Math.max(rects_base.header_text_gougai.y - 2, 0), rects_base.header_text_gougai.width + 4, rects_base.header_text_gougai.height + 4));
+      img_tmpl = cv.imread(document.getElementById('tmplHeaderTextGougai'));
+      cv.cvtColor(img_tmpl, img_tmpl, cv.COLOR_RGBA2RGB, 0);
+      tmp_dst = new cv.Mat();
+      cv.resize(img_tmpl, tmp_dst, new cv.Size(rects_base.header_text_gougai.width, rects_base.header_text_gougai.height), 0, 0);
+      arr_rayout_score.push({'rayout_type': 'gougai', 'score': match_tmpl_min_max_loc(img_tgt, tmp_dst).maxVal});
+
       // 最もスコアの高いレイアウトを選択、しきい値より高ければ採用
       arr_rayout_score.sort((a, b) => b.score - a.score);
       if (arr_rayout_score[0].score > thres_match_tmpl_rayout_type) {
@@ -618,6 +633,7 @@ function get_unknown_rects(l_mat, l_rects) {
         // 結果の平滑化
         let l_sum_diff_by_y_smooth = smoothing_list(l_sum_diff_by_y, diff_window_size);
         // console.log(l_sum_diff_by_y.join('\n'));
+        console.log(l_sum_diff_by_y.map((e, i) => e + '\t' + l_sum_diff_by_y_smooth[Math.min(i, l_sum_diff_by_y_smooth.length - 1)]).join('\n'));
         // console.log(l_sum_diff_by_y_smooth.join('\n'));
         // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
         let tmp_area = detect_common_scroll_area(l_sum_diff_by_y, l_sum_diff_by_y_smooth, diff_window_size);
@@ -750,7 +766,7 @@ function get_group_list(imgs, l_rects) {
                 // パーツ毎の結果を乗算、全部似てればほぼ1のまま、どれかでも違うと一気に0に近づく
                 arr_val[Math.min(i, j)][Math.max(i, j)] *= res.maxVal;
               });
-            } else if (['result_table', 'score_detail', 'race_detail'].includes(l_rects[i].rayout_type)) {
+            } else if (['result_table', 'score_detail', 'race_detail', 'gougai'].includes(l_rects[i].rayout_type)) {
               // 基本情報欄を持つレイアウトは基本情報欄で比較
               ['basic_info'].forEach(function(p){
                 let res = match_tmpl_min_max_loc(img_tgt[p], img_tmpl[p].roi(new cv.Rect(0, 0, Math.max(img_tmpl[p].cols - 1, 1), Math.max(img_tmpl[p].rows - 1, 1))).clone());
@@ -792,12 +808,13 @@ function get_group_list(imgs, l_rects) {
 function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
   return new Promise(function(resolve){
     let img_tmpl = imgs[i];
+    let simple_rayout = ['result_table', 'score_info', 'score_detail', 'field', 'race_detail', 'gougai'];
     imgs.forEach(function(img_tgt, j){
       // 同じ画像ではなく、かつ同じグループだったら比較開始
       if (i != j && l_group[i] == l_group[j]) {
         // シンプルレイアウトなら比較範囲を拡大
         let res = {};
-        if (['result_table', 'score_info', 'score_detail', 'field', 'race_detail'].includes(img_tmpl.rayout_type)) {
+        if (simple_rayout.includes(img_tmpl.rayout_type)) {
           res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row_higher);
         } else {
           res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row);
@@ -806,7 +823,7 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
         if (arr_val[Math.min(i, j)][Math.max(i, j)] < res.maxVal && thres_match_tmpl < res.maxVal) {
           // console.log(i, j);
           let dist = 0;
-          if (['result_table', 'score_info', 'score_detail', 'field', 'race_detail'].includes(img_tmpl.rayout_type)) {
+          if (simple_rayout.includes(img_tmpl.rayout_type)) {
             dist = img_tgt.scroll.rows - img_tmpl.bottom_row_higher.rows - res.maxLoc.y;
           } else {
             dist = img_tgt.scroll.rows - img_tmpl.bottom_row.rows - res.maxLoc.y;
