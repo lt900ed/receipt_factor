@@ -222,9 +222,15 @@ function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, 
     canvas_element.getContext('2d').fillStyle = 'rgb(242, 242, 242)';
     canvas_element.getContext('2d').fillRect(0, 0, canvas_element.width, canvas_element.height);
     // 相対座標が大きい順のインデックスを取得
-    // 下から貼り付けて切れ目が出るのを防ぐ
-    let l_index_by_rh_desc = [...Array(imgs.length).keys()].filter((d, i) => l_group[i] == current_group).sort((first, second) => l_relative_height[second] - l_relative_height[first]);
-    l_index_by_rh_desc.forEach(function(i) {
+    let l_index_by_rh = [];
+    if (['common_header_scroll', 'common_scroll_only'].includes(imgs.filter((d, i) => l_group[i] == current_group)[0].rayout_type)) {
+      // 汎用レイアウトなら上から貼り付けて最下部のボタンが映るのを防ぐ
+      l_index_by_rh = [...Array(imgs.length).keys()].filter((d, i) => l_group[i] == current_group).sort((first, second) => l_relative_height[first] - l_relative_height[second]);
+    } else {
+      // 他は下から貼り付けて切れ目が出るのを防ぐ
+      l_index_by_rh = [...Array(imgs.length).keys()].filter((d, i) => l_group[i] == current_group).sort((first, second) => l_relative_height[second] - l_relative_height[first]);
+    }
+    l_index_by_rh.forEach(function(i) {
       let img = imgs[i];
       // スクロール部分を描画
       // console.log(i, current_group, w_one_col, (l_h_header[current_group] + l_relative_height[i]) * tmp_scale, img.scroll.cols * tmp_scale, img.scroll.rows * tmp_scale);

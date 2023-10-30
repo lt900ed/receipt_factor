@@ -225,6 +225,49 @@ function match_tmpl_min_max_loc(img_tgt, img_tmpl) {
   dst.delete();
   return out;
 }
+function match_tmpl_with_msk_min_max_loc(img_tgt, img_tmpl, img_msk) {
+  let dst = new cv.Mat();
+  let out = null;
+  // マスクなしと比べて遅すぎるのでモノクロで比較
+  let img_tgt_gray = new cv.Mat();
+  let img_tmpl_gray = new cv.Mat();
+  let img_msk_gray = new cv.Mat();
+  cv.cvtColor(img_tgt, img_tgt_gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.cvtColor(img_tmpl, img_tmpl_gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.cvtColor(img_msk, img_msk_gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.matchTemplate(img_tgt_gray, img_tmpl_gray, dst, cv.TM_CCOEFF_NORMED, img_msk_gray);
+  out = cv.minMaxLoc(dst);
+  dst.delete();
+  img_tgt_gray.delete();
+  img_tmpl_gray.delete();
+  img_msk_gray.delete();
+  return out;
+}
+function gene_common_msk(img_tmpl, img_tgt) {
+  let tmp_diff = new cv.Mat();
+  let img_0_gray = img_tmpl.clone();
+  let img_1_gray = img_tgt.clone();
+  cv.cvtColor(img_0_gray, img_0_gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.cvtColor(img_1_gray, img_1_gray, cv.COLOR_RGBA2GRAY, 0);
+  cv.absdiff(img_0_gray, img_1_gray, tmp_diff);
+  cv.threshold(tmp_diff, tmp_diff, 0, 255, cv.THRESH_BINARY);
+  cv.cvtColor(tmp_diff, tmp_diff, cv.COLOR_GRAY2RGB, 0);
+
+  // let img_msk = cv.Mat.zeros(img_0_gray.rows, img_0_gray.cols, cv.CV_8UC3);
+  // for (let i = 0; i < img_0_gray.rows; i++) {
+  //   for (let j = 0; j < img_0_gray.cols; j++) {
+  //     if (tmp_diff.ucharAt(i, j) > 0) {
+  //       img_msk.ucharPtr(i, j)[0] = 255;
+  //       img_msk.ucharPtr(i, j)[1] = 255;
+  //       img_msk.ucharPtr(i, j)[2] = 255;
+  //     }
+  //   }
+  // }
+  // tmp_diff.delete();
+  img_0_gray.delete();
+  img_1_gray.delete();
+  return tmp_diff;
+}
 function smoothing_list(l, window_size) {
   let out = [];
   for (let i = 0; i < l.length - window_size + 1; i++) {
@@ -812,10 +855,15 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
     imgs.forEach(function(img_tgt, j){
       // 同じ画像ではなく、かつ同じグループだったら比較開始
       if (i != j && l_group[i] == l_group[j]) {
-        // シンプルレイアウトなら比較範囲を拡大
         let res = {};
         if (simple_rayout.includes(img_tmpl.rayout_type)) {
+          // シンプルレイアウトなら比較範囲を拡大
           res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row_higher);
+        } else if (['common_header_scroll', 'common_scroll_only'].includes(img_tmpl.rayout_type)) {
+          // 汎用レイアウトならマスクを用いて比較
+          let img_msk = gene_common_msk(img_tmpl.bottom_row, img_tgt.bottom_row);
+          res = match_tmpl_with_msk_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row, img_msk);
+          img_msk.delete();
         } else {
           res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row);
         }
