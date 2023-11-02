@@ -998,7 +998,7 @@ function align_missing_imgs(l_relative_height, l_group, imgs) {
     const n_tgt = imgs.length;
     console.log('位置が取得出来なかった画像を末尾に単純配置');
     if (l_relative_height.filter((d) => d == null).length) {
-      raiseNormalMsg('位置が取得出来ない画像がありました。末尾に単純結合しています。');
+      raiseNormalMsg('位置が取得出来ない画像があったため末尾に単純連結しています。二行ずつ重なるようにスクショを撮れているか確認して下さい。');
       // グループ毎に処理
       [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
         let max_rh_already = Math.max(...l_relative_height.filter((d, i) => l_group[i] == current_group));
