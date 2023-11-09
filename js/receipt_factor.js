@@ -117,7 +117,7 @@ const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll'
 const load_parts_simple = ['header', 'basic_info', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
 const load_parts_more_simple = ['header', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
 const load_parts_scroll_only = ['scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
-const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
+const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val', 'tab'];
 const load_parts_by_rayout_type = {
   'normal': load_parts,
   'with_growth_rate': load_parts,
