@@ -984,6 +984,7 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
           tmp_img_tgt.delete();
         }
         // もし隣接しているはずなのに相対距離が出てなかったら、真下に単純連結出来る距離を入力
+        raiseNormalMsg('スクロールバーの位置に基づいて単純連結している箇所があります。');
         if (is_neighbor_by_scbar && arr_val[Math.min(i, j)][Math.max(i, j)] == 0.0) {
           arr_val[Math.min(i, j)][Math.max(i, j)] = 1.0;
           arr_loc[Math.min(i, j)][Math.max(i, j)] = img_tgt.scroll.rows;
