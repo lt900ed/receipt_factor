@@ -394,14 +394,21 @@ async function generatePhoto() {
     if (l_rects.filter((e) => e.rayout_type == 'unknown').length >= 1) {
       await get_unknown_rects(l_mat, l_rects);
     }
-    console.log(l_rects);
     let imgs = await trim_parts(l_mat, l_rects);
     if (is_show_skill_icon) {changePercentage(10)} else {changePercentage(20)};
     await repaint();
+
+    console.log('グループ分け');
     let l_group = await get_group_list(imgs, l_rects);
+    if (is_show_skill_icon) {changePercentage(12)} else {changePercentage(25)};
+    await repaint();
+
+    console.log('スクロールバーに基づく順序決め');
+    await get_order_by_scbar(imgs, l_rects, l_group);
     if (is_show_skill_icon) {changePercentage(15)} else {changePercentage(30)};
     await repaint();
 
+    console.log(imgs);
     console.log('グループ内でテンプレートマッチ');
     const n_tgt = imgs.length;
     // 結果格納用配列初期化
@@ -416,8 +423,8 @@ async function generatePhoto() {
       if (is_show_skill_icon) {changePercentage(15 + (25 / n_tgt) * i)} else {changePercentage(30 + (50 / n_tgt) * i)};
       await repaint();
     }
-    // arr_val.forEach(function(r){console.log(r)});
-    // arr_loc.forEach(function(r){console.log(r)});
+    arr_val.forEach(function(r){console.log(r)});
+    arr_loc.forEach(function(r){console.log(r)});
 
     let l_relative_height = await get_relative_dist(arr_val, arr_loc, l_group);
     await align_missing_imgs(l_relative_height, l_group, imgs);

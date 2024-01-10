@@ -17,6 +17,7 @@ const rect_prop = {
   close: [539, 1828, 458, 132],
   whole: [x_full, 51, width_full, 1910],
   scroll: [x_narrow, 947, width_narrow, 829],
+  scroll_bar: [1297, 969, 21, 787],
   icon: [347, 235, 150, 150],
   eval_val: [357, 427, 133, 37],
   speed_val: [315, 556, 103, 37],
@@ -42,36 +43,44 @@ rect_prop['factor_text_right'] = [rect_prop['factor_text_left'][0] + x_factor_in
 
 const rect_prop_dynamic = {
   with_growth_rate: {
-      basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], rect_prop.basic_info[3] + 133],
-      scroll: [x_narrow, rect_prop.scroll[1] + 129, width_narrow, rect_prop.scroll[3] - 129],
+    basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], rect_prop.basic_info[3] + 133],
+    scroll: [x_narrow, 1076, width_narrow, rect_prop.scroll[3] - 129],
+    scroll_bar: [1297, 1100, 21, 528],
   },
   with_register_partner: {
-      basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], rect_prop.basic_info[3] + 205],
-      scroll: [x_narrow, rect_prop.scroll[1] + 192, width_narrow, rect_prop.scroll[3] - 192],
+    basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], rect_prop.basic_info[3] + 205],
+    scroll: [x_narrow, 1139, width_narrow, rect_prop.scroll[3] - 192],
+    scroll_bar: [1297, 1164, 21, 592],
   },
   result_table: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 641],
-    scroll: [x_narrow, rect_prop.scroll[1] - 155, width_narrow, rect_prop.scroll[3] + 163],
+    scroll: [x_narrow, 792, width_narrow, rect_prop.scroll[3] + 163],
+    scroll_bar: [1299, 815, 16, 945],
   },
   score_info: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], 0, 0],
-    scroll: [x_narrow, rect_prop.scroll[1] - 781, width_narrow, rect_prop.scroll[3] + 789],
+    scroll: [x_narrow, 166, width_narrow, rect_prop.scroll[3] + 789],
+    scroll_bar: [1293, 181, 16, 1584],
   },
   score_detail: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 239],
-    scroll: [x_narrow, rect_prop.scroll[1] - 557, width_narrow, rect_prop.scroll[3] + 555],
+    scroll: [x_narrow, 390, width_narrow, 1360],
+    scroll_bar: [1297, 405, 16, 1345],
   },
   field: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], 0, 0],
     scroll: [x_narrow, 166, width_narrow, 1543],
+    scroll_bar: [1293, 202, 16, 1563],
   },
   race_detail: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 705],
     scroll: [x_narrow, 856, width_narrow, 920],
+    scroll_bar: [1299, 879, 16, 874],
   },
   gougai: {
     basic_info: [rect_prop.header[0], rect_prop.header[1] + rect_prop.header[3], rect_prop.header[2], 962],
     scroll: [x_narrow, 1113, width_narrow, 665],
+    scroll_bar: [1293, 202, 16, 1563],
   },
 }
 
@@ -109,13 +118,15 @@ const thres_match_tmpl_disc_rate = 0.85;
 const thres_header = 0.9;
 const thres_common_diff_y1 = 20;
 const thres_common_diff_y2 = 12;
+const thres_scroll_bar_position = 210;
 
 // パラメータ
 const force_one_group = false;
 const all_rayout_type = ['normal', 'with_growth_rate', 'with_register_partner', 'result_table', 'score_info', 'score_detail', 'field', 'race_detail', 'gougai', 'common_scroll_only', 'common_header_scroll'];
-const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
-const load_parts_simple = ['header', 'basic_info', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
-const load_parts_more_simple = ['header', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
+const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll', 'scroll_bar', 'bottom_row', 'bottom_row_higher', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
+const load_parts_simple = ['header', 'basic_info', 'scroll_full_width', 'scroll', 'scroll_bar', 'bottom_row', 'bottom_row_higher'];
+const load_parts_more_simple = ['header', 'scroll_full_width', 'scroll', 'scroll_bar', 'bottom_row', 'bottom_row_higher'];
+const load_parts_common = ['header', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
 const load_parts_scroll_only = ['scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
 const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val', 'tab'];
 const load_parts_by_rayout_type = {
@@ -129,7 +140,7 @@ const load_parts_by_rayout_type = {
   'race_detail': load_parts_simple,
   'gougai': load_parts_simple,
   'common_scroll_only': load_parts_scroll_only,
-  'common_header_scroll': load_parts_more_simple,
+  'common_header_scroll': load_parts_common,
 }
 const diff_window_size = 32;
 
@@ -291,6 +302,11 @@ function detect_common_scroll_area(l, l_smooth, window_size) {
       l_smooth.slice(i - Math.floor((i - tmp_y1) / 16), i).filter(f => f <= thres_common_diff_y2).length == 0);
   }
   return {'y1': tmp_y1, 'y2': tmp_y2}
+}
+function detect_scroll_bar_position(l_smooth) {
+  let tmp_y1 = l_smooth.findIndex(e => e < thres_scroll_bar_position);
+  let tmp_y2 = l_smooth.findLastIndex(e => e < thres_scroll_bar_position);
+  return Math.floor((tmp_y1 + tmp_y2) / 2)
 }
 function detect_rects(img_in) {
   let mv_contours = new cv.MatVector();
@@ -768,6 +784,26 @@ function trim_parts(l_mat, l_rects) {
         tmp_dst.delete();
       });
       obj_tmp['rayout_type'] = l_rects[i].rayout_type;
+      // スクロールバーがあればそれの高さを取得
+      if (tgt_load_parts.includes('scroll_bar')) {
+        // console.log(l_rects[i].rects['scroll_bar']);
+        img_scroll_bar_gray = obj_tmp['scroll_bar'].clone();
+        cv.cvtColor(img_scroll_bar_gray, img_scroll_bar_gray, cv.COLOR_RGBA2GRAY, 0);
+
+        let l_sum_val_by_y = [];
+        for (let i = 0; i < img_scroll_bar_gray.rows; i++) {
+          tmp_sum = 0;
+          for (let j = 0; j < img_scroll_bar_gray.cols; j++) {
+            // ucharAtは1px毎に0~255で出力
+            tmp_sum += img_scroll_bar_gray.ucharAt(i, j);
+          }
+          l_sum_val_by_y.push(tmp_sum / img_scroll_bar_gray.cols);
+        }
+        img_scroll_bar_gray.delete();
+        // スクロールバーの中央を取得して格納
+        obj_tmp['scroll_bar_y'] = detect_scroll_bar_position(l_sum_val_by_y);
+        // console.log(obj_tmp['scroll_bar_y']);
+      }
       imgs.push(obj_tmp);
     });
     resolve(imgs);
@@ -775,7 +811,6 @@ function trim_parts(l_mat, l_rects) {
 }
 function get_group_list(imgs, l_rects) {
   return new Promise(function(resolve){
-    console.log('入力画像をグループ分け');
     const n_tgt = imgs.length;
     // グループ決め
     let l_group = [];
@@ -848,13 +883,64 @@ function get_group_list(imgs, l_rects) {
     resolve(l_group);
   })
 }
+function get_order_by_scbar(imgs, l_rects, l_group) {
+  return new Promise(function(resolve){
+    const n_tgt = imgs.length;
+    // グループ毎に処理
+    [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
+      let l_tmp_scbar_y = [];
+      let n_tmp = 0;
+      imgs.forEach(function(img_tgt, i){
+        if (l_group[i] == current_group) {
+          n_tmp += 1;
+          if ('scroll_bar_y' in img_tgt) {
+            if (img_tgt['scroll_bar_y'] != -1) {
+              l_tmp_scbar_y.push({'index': i, 'scroll_bar_y': img_tgt['scroll_bar_y']})
+            }
+          } else {
+            img_tgt['scroll_bar_y'] = -1
+          }
+        }
+      })
+
+      // スクロールバーの位置が不明な画像が一つでもあれば全部ポジション不明扱い
+      if (n_tmp != l_tmp_scbar_y.length) {
+        imgs.forEach(function(img_tgt, i){
+          if (l_group[i] == current_group) {
+            img_tgt['position_by_scbar'] = -1
+          }
+        })
+      } else {
+        // ソートして順序をimgsに返す
+        l_tmp_scbar_y.sort((first, second) => first['scroll_bar_y'] - second['scroll_bar_y']);
+        l_tmp_scbar_y.forEach(function(tmp_scbar_y, i){
+          imgs[tmp_scbar_y['index']]['position_by_scbar'] = i
+        })
+      }
+    })
+
+    // console.log(l_order_by_scbar_by_group);
+    resolve();
+  })
+}
 function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
   return new Promise(function(resolve){
     let img_tmpl = imgs[i];
     let simple_rayout = ['result_table', 'score_info', 'score_detail', 'field', 'race_detail', 'gougai'];
     imgs.forEach(function(img_tgt, j){
-      // 同じ画像ではなく、かつ同じグループだったら比較開始
+      let is_neighbor_by_scbar = false;
+      let is_tgt = false;
+      // 同じ画像ではなく、かつ同じグループであり、スクロールバーに基づく順序があるならそれが隣接していたら比較開始
       if (i != j && l_group[i] == l_group[j]) {
+        is_tgt = true;
+        if (img_tmpl['position_by_scbar'] != -1) {
+          if (img_tgt['position_by_scbar'] == img_tmpl['position_by_scbar'] + 1) {
+            is_neighbor_by_scbar = true;
+          }
+        }
+      }
+      console.log(i, j, is_tgt, is_neighbor_by_scbar, is_tgt && (img_tmpl['position_by_scbar'] == -1 || is_neighbor_by_scbar))
+      if (is_tgt && (img_tmpl['position_by_scbar'] == -1 || is_neighbor_by_scbar)) {
         let res = {};
         if (simple_rayout.includes(img_tmpl.rayout_type)) {
           // シンプルレイアウトなら比較範囲を拡大
@@ -897,11 +983,18 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
           tmp_img_tmpl.delete();
           tmp_img_tgt.delete();
         }
+        // もし隣接しているはずなのに相対距離が出てなかったら、真下に単純連結出来る距離を入力
+        if (is_neighbor_by_scbar && arr_val[Math.min(i, j)][Math.max(i, j)] == 0.0) {
+          arr_val[Math.min(i, j)][Math.max(i, j)] = 1.0;
+          arr_loc[Math.min(i, j)][Math.max(i, j)] = img_tgt.scroll.rows;
+        }
       }
     })
     resolve();
   })
 }
+
+// 2024/1/10 未使用
 async function match_cross(imgs, l_group) {
     console.log('グループ内でテンプレートマッチ')
     const n_tgt = imgs.length;
