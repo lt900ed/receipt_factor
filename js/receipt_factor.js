@@ -119,6 +119,7 @@ const thres_header = 0.9;
 const thres_common_diff_y1 = 20;
 const thres_common_diff_y2 = 12;
 const thres_scroll_bar_position = 210;
+const thres_scbar_h = 0.90;
 
 // パラメータ
 const force_one_group = false;
@@ -144,6 +145,19 @@ const load_parts_by_rayout_type = {
 }
 const diff_window_size = 32;
 
+function fn_sum(arr, fn) {
+  if (fn) {
+    return fn_sum(arr.map(fn));
+  }
+  else {
+    return arr.reduce(function(prev, current, i, arr) {
+      return prev + current;
+    });
+  }
+};
+function fn_avg(arr, fn) {
+  return fn_sum(arr, fn) / arr.length;
+};
 function vconcat_resize_min(im_list, interpolation = cv.INTER_CUBIC) {
   const w_min = Math.min(...im_list.map((d) => {return d.cols}));
   let im_list_resize = new cv.MatVector();
@@ -303,10 +317,11 @@ function detect_common_scroll_area(l, l_smooth, window_size) {
   }
   return {'y1': tmp_y1, 'y2': tmp_y2}
 }
-function detect_scroll_bar_position(l_smooth) {
+function detect_scroll_bar_position(obj, l_smooth) {
   let tmp_y1 = l_smooth.findIndex(e => e < thres_scroll_bar_position);
   let tmp_y2 = l_smooth.findLastIndex(e => e < thres_scroll_bar_position);
-  return Math.floor((tmp_y1 + tmp_y2) / 2)
+  obj['scroll_bar_y'] = Math.floor((tmp_y1 + tmp_y2) / 2)
+  obj['scroll_bar_h'] = Math.abs(tmp_y2 - tmp_y1)
 }
 function detect_rects(img_in) {
   let mv_contours = new cv.MatVector();
@@ -801,8 +816,7 @@ function trim_parts(l_mat, l_rects) {
         }
         img_scroll_bar_gray.delete();
         // スクロールバーの中央を取得して格納
-        obj_tmp['scroll_bar_y'] = detect_scroll_bar_position(l_sum_val_by_y);
-        // console.log(obj_tmp['scroll_bar_y']);
+        detect_scroll_bar_position(obj_tmp, l_sum_val_by_y);
       }
       imgs.push(obj_tmp);
     });
@@ -889,6 +903,7 @@ function get_order_by_scbar(imgs, l_rects, l_group) {
     // グループ毎に処理
     [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
       let l_tmp_scbar_y = [];
+      let l_tmp_scbar_h = [];
       let n_tmp = 0;
       imgs.forEach(function(img_tgt, i){
         if (l_group[i] == current_group) {
@@ -896,15 +911,20 @@ function get_order_by_scbar(imgs, l_rects, l_group) {
           if ('scroll_bar_y' in img_tgt) {
             if (img_tgt['scroll_bar_y'] != -1) {
               l_tmp_scbar_y.push({'index': i, 'scroll_bar_y': img_tgt['scroll_bar_y']})
+              l_tmp_scbar_h.push(img_tgt['scroll_bar_h'])
             }
           } else {
             img_tgt['scroll_bar_y'] = -1
+            img_tgt['scroll_bar_h'] = -1
           }
         }
       })
 
       // スクロールバーの位置が不明な画像が一つでもあれば全部ポジション不明扱い
-      if (n_tmp != l_tmp_scbar_y.length) {
+      // またはスクロールバーの長さがそこそこ一致してないと全部ポジション不明扱い
+      // console.log(l_tmp_scbar_y);
+      // console.log(l_tmp_scbar_h);
+      if (n_tmp != l_tmp_scbar_y.length || Math.min(...l_tmp_scbar_h) / Math.max(...l_tmp_scbar_h) < thres_scbar_h) {
         imgs.forEach(function(img_tgt, i){
           if (l_group[i] == current_group) {
             img_tgt['position_by_scbar'] = -1
@@ -939,9 +959,10 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
           }
         }
       }
-      console.log(i, j, is_tgt, is_neighbor_by_scbar, is_tgt && (img_tmpl['position_by_scbar'] == -1 || is_neighbor_by_scbar))
+      // console.log(i, j, is_tgt, is_neighbor_by_scbar, is_tgt && (img_tmpl['position_by_scbar'] == -1 || is_neighbor_by_scbar))
       if (is_tgt && (img_tmpl['position_by_scbar'] == -1 || is_neighbor_by_scbar)) {
         let res = {};
+        let tmp_sign = 0;
         if (simple_rayout.includes(img_tmpl.rayout_type)) {
           // シンプルレイアウトなら比較範囲を拡大
           res = match_tmpl_min_max_loc(img_tgt.scroll, img_tmpl.bottom_row_higher);
@@ -968,12 +989,13 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
             dist *= -1;
           }
           if (dist < 0) {
-            tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, -dist, img_tmpl.scroll.cols, img_tmpl.scroll.rows + dist)).clone();
-            tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows + dist)).clone();
+            tmp_sign = 1
           } else {
-            tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, dist, img_tmpl.scroll.cols, img_tmpl.scroll.rows - dist)).clone();
-            tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows - dist)).clone();
+            tmp_sign = -1
           }
+          tmp_img_tgt = img_tmpl.scroll.roi(new cv.Rect(0, dist * tmp_sign * -1, img_tmpl.scroll.cols, img_tmpl.scroll.rows + dist * tmp_sign)).clone();
+          tmp_img_tmpl = img_tgt.scroll.roi(new cv.Rect(0, 0, img_tgt.scroll.cols, img_tgt.scroll.rows + dist * tmp_sign)).clone();
+
           let tmp_res = match_tmpl_min_max_loc(tmp_img_tgt, tmp_img_tmpl);
           // console.log(i, j, res.maxVal, tmp_res.maxVal, dist);
           if (thres_match_tmpl_higher < tmp_res.maxVal) {
@@ -983,11 +1005,18 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
           tmp_img_tmpl.delete();
           tmp_img_tgt.delete();
         }
-        // もし隣接しているはずなのに相対距離が出てなかったら、真下に単純連結出来る距離を入力
-        raiseNormalMsg('スクロールバーの位置に基づいて単純連結している箇所があります。');
-        if (is_neighbor_by_scbar && arr_val[Math.min(i, j)][Math.max(i, j)] == 0.0) {
+        // もし隣接しているはずなのに相対距離が出てない、または上下逆に繋がってたら、真下に単純連結出来る距離を入力
+        // console.log(is_neighbor_by_scbar, i, j, arr_val[Math.min(i, j)][Math.max(i, j)], arr_loc[Math.min(i, j)][Math.max(i, j)], arr_val[Math.min(i, j)][Math.max(i, j)] == 0.0)
+        if (i <= j) {
+          tmp_sign = 1;
+        } else {
+          tmp_sign = -1;
+        }
+        if (is_neighbor_by_scbar && (arr_val[Math.min(i, j)][Math.max(i, j)] == 0.0 || arr_loc[Math.min(i, j)][Math.max(i, j)] * tmp_sign < 0)) {
+          raiseNormalMsg('スクロールバーの位置に基づいて単純連結している箇所があります。');
           arr_val[Math.min(i, j)][Math.max(i, j)] = 1.0;
-          arr_loc[Math.min(i, j)][Math.max(i, j)] = img_tgt.scroll.rows;
+          arr_loc[Math.min(i, j)][Math.max(i, j)] = img_tgt.scroll.rows * tmp_sign;
+          // console.log(is_neighbor_by_scbar, i, j, arr_val[Math.min(i, j)][Math.max(i, j)], arr_loc[Math.min(i, j)][Math.max(i, j)])
         }
       }
     })
@@ -1026,45 +1055,61 @@ function get_relative_dist(arr_val, arr_loc, l_group) {
     console.log('各グループの先頭画像からの相対距離を算出')
     // 各グループの先頭画像からの相対距離を算出
     let l_relative_height = new Array(n_tgt).fill(null);
-    l_relative_height[0] = 0;
     let l_relative_height_score = new Array(n_tgt).fill(0.0);
     let l_isfinished = new Array(n_tgt).fill(false);
     let n_finished_before = -1;
     let n_finished = 0;
     // グループ毎に処理
     [...Array(Math.max(...l_group) + 1).keys()].forEach(function(current_group){
+      let i_most_certain = 0;
+      // 基準となる最も確実性の高いペアの上側の画像を探す
+      let l_val = [];
+      [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group).forEach(function(i){
+        [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group).forEach(function(j){
+          l_val.push({'i': i, 'j': j, 'val': arr_val[i][j], 'loc': arr_loc[i][j]});
+        })
+      })
+      l_val.sort((first, second) => second['val'] - first['val']);
+      if (l_val[0]['loc'] >= 0) {
+        i_most_certain = l_val[0]['i'];
+      } else {
+        i_most_certain = l_val[0]['j'];
+      }
+      // console.log(i_most_certain);
+
+      // 相対座標計算開始
       let is_group_initialized = false;
       while (true) {
         n_finished_before = n_finished;
-        [...Array(n_tgt).keys()].forEach(function(y){
-          // 今のグループだけ処理
-          if (l_group[y] == current_group) {
-            // 各グループ先頭の画像を基準とする
-            if (!is_group_initialized) {
-              l_relative_height[y] = 0;
-              l_relative_height_score[y] = 1;
-              is_group_initialized = true;
-            }
-            // 相対座標が決まってたら、まだ決まってない他の画像に波及開始
-            if (!l_isfinished[y] && l_relative_height[y] != null) {
-              [...Array(n_tgt).keys()].forEach(function(i){
-                [...Array(n_tgt).keys()].forEach(function(j){
-                  if (arr_loc[i][j] != 0 && l_group[i] == current_group && l_group[j] == current_group) {
-                    let tmp_relative_height_score = Math.min(l_relative_height_score[y], arr_val[i][j]);
-                    if (i < y && j == y && l_relative_height_score[i] < tmp_relative_height_score) {
-                      l_relative_height[i] = l_relative_height[y] - arr_loc[i][j];
-                      l_relative_height_score[i] = tmp_relative_height_score;
-                      l_isfinished[i] = false;
-                    } else if (i == y && j > y && l_relative_height_score[j] < tmp_relative_height_score) {
-                      l_relative_height[j] = l_relative_height[y] + arr_loc[i][j];
-                      l_relative_height_score[j] = tmp_relative_height_score;
-                      l_isfinished[j] = false;
-                    }
+        // 今のグループだけ処理
+        [...Array(n_tgt).keys()].filter((d) => l_group[d] == current_group).forEach(function(y){
+          // 基準画像までスキップ
+          if (!is_group_initialized && y == i_most_certain) {
+            l_relative_height[y] = 0;
+            l_relative_height_score[y] = 1;
+            is_group_initialized = true;
+          }
+          // 初期化されていてかつ相対座標が決まってたら、まだ決まってない他の画像に波及開始
+          if (is_group_initialized && !l_isfinished[y] && l_relative_height[y] != null) {
+            [...Array(n_tgt).keys()].forEach(function(i){
+              [...Array(n_tgt).keys()].forEach(function(j){
+                if (arr_loc[i][j] != 0 && l_group[i] == current_group && l_group[j] == current_group) {
+                  let tmp_relative_height_score = Math.min(l_relative_height_score[y], arr_val[i][j]);
+                  if (i < y && j == y && l_relative_height_score[i] < tmp_relative_height_score) {
+                    l_relative_height[i] = l_relative_height[y] - arr_loc[i][j];
+                    l_relative_height_score[i] = tmp_relative_height_score;
+                    l_isfinished[i] = false;
+                    // console.log([y, i, j, true, ...l_isfinished, ...l_relative_height, ...l_relative_height_score].join('\t'));
+                  } else if (i == y && j > y && l_relative_height_score[j] < tmp_relative_height_score) {
+                    l_relative_height[j] = l_relative_height[y] + arr_loc[i][j];
+                    l_relative_height_score[j] = tmp_relative_height_score;
+                    l_isfinished[j] = false;
+                    // console.log([y, i, j, false, ...l_isfinished, ...l_relative_height, ...l_relative_height_score].join('\t'));
                   }
-                })
+                }
               })
-              l_isfinished[y] = true
-            }
+            })
+            l_isfinished[y] = true
           }
         })
         // 全部チェックし終えたか更新出来なくなったら終了
@@ -1081,8 +1126,8 @@ function get_relative_dist(arr_val, arr_loc, l_group) {
           l_relative_height[i] -= min_relative_height;
         }
       }
-      // console.log(l_relative_height);
     })
+    console.log(l_relative_height);
     resolve(l_relative_height);
   })
 }
