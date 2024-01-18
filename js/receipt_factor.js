@@ -1355,7 +1355,8 @@ function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
         } else {
           skill_icon_id = 'skillIconUnknown';
         }
-        // console.log(skill_icon_id);
+        console.log(skill_icon_id);
+        console.log(l_detected_factor[i][j].rect_factor_icon);
         l_scroll_canvas[i].getContext('2d').drawImage(
           document.getElementById(skill_icon_id),
           l_detected_factor[i][j].rect_factor_icon.left,
