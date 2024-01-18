@@ -1357,7 +1357,7 @@ function detectFactor_by_gamma(eles_scroll_canvas) {
   };
   // 大きい順に2番目のを因子1枠の輪郭として採用
   l_tmpl_contours_only_large.sort((first, second) => cv.contourArea(second) - cv.contourArea(first));
-  let msk_close = l_tmpl_contours_only_large[1];
+  let msk_1factor = l_tmpl_contours_only_large[1];
   mv_tmpl_contours.delete();
   mv_tmpl_hierarchy.delete();
   src_tmpl.delete();
@@ -1366,28 +1366,27 @@ function detectFactor_by_gamma(eles_scroll_canvas) {
   let l_scroll_canvas = Array.from(eles_scroll_canvas);
   // グループ毎に処理
   l_scroll_canvas.forEach((sc) => {
+    let img_src = cv.imread(sc);
     let l_tmp = [];
     // ガンマ補正
     let tmpCanvasElement = gamma_correction(sc, 0.1);
 
     // ガンマ補正後のスクロール部を使って特徴点マッチング
-    let src = cv.imread(tmpCanvasElement);
-    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
-    cv.threshold(src, src, thres_1factor, 255, cv.THRESH_BINARY);
+    let img_src_gamma = cv.imread(tmpCanvasElement);
+    cv.cvtColor(img_src_gamma, img_src_gamma, cv.COLOR_RGBA2GRAY, 0);
+    cv.threshold(img_src_gamma, img_src_gamma, thres_1factor, 255, cv.THRESH_BINARY);
     let mv_contours = new cv.MatVector();
     let mv_hierarchy = new cv.Mat();
-    cv.findContours(src, mv_contours, mv_hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    cv.findContours(img_src_gamma, mv_contours, mv_hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
     let l_rect_1factor = [];
     for (let i = 0; i < mv_contours.size(); ++i) {
       // 小さい領域は無視
-      if (cv.contourArea(mv_contours.get(i)) > (Math.min(src.cols, src.rows) ** 2) / 50) {
-        is_close_val = cv.matchShapes(mv_contours.get(i), msk_close, cv.CONTOURS_MATCH_I3, 0);
+      if (cv.contourArea(mv_contours.get(i)) > (Math.min(img_src_gamma.cols, img_src_gamma.rows) ** 2) / 50) {
+        is_close_val = cv.matchShapes(mv_contours.get(i), msk_1factor, cv.CONTOURS_MATCH_I3, 0);
         if (is_close_val < thres_cont_close) {
-          // console.log(cv.boundingRect(mv_contours.get(i)), is_close_val);
           let tmp_rect = cv.boundingRect(mv_contours.get(i));
           let tmp_scale = tmp_rect.width / rect_prop.factor_area_left[2];
-          // l_rect_1factor.push(cv.boundingRect(mv_contours.get(i)));
-          l_tmp.push({
+          let tmp_dic = {
             rect_factor_disc: {
               left: tmp_rect.x + Math.floor((rect_prop.factor_disc_left[0] - rect_prop.factor_area_left[0]) * tmp_scale),
               top: tmp_rect.y + Math.floor((rect_prop.factor_disc_left[1] - rect_prop.factor_area_left[1]) * tmp_scale),
@@ -1407,7 +1406,21 @@ function detectFactor_by_gamma(eles_scroll_canvas) {
               width: Math.floor(rect_prop.factor_text_left[2] * tmp_scale),
               height: Math.floor(rect_prop.factor_text_left[3] * tmp_scale)
             }
-          })
+          }
+
+          // ちゃんと因子欄か丸ポチの有無で確認
+          // 因子のまるポチのテンプレート読み込み
+          let tmpl_factor_disc = cv.imread(document.getElementById('tmplFactorDisc'));
+          cv.resize(tmpl_factor_disc, tmpl_factor_disc, new cv.Size(tmp_dic.rect_factor_disc.width, tmp_dic.rect_factor_disc.height), 0, 0, cv.INTER_CUBIC);
+
+          // 丸ポチ部分でテンプレートマッチ
+          // しきい値以上だったら因子名読み込み対象に追加
+          let img_tgt = img_src.roi(new cv.Rect(Math.max(tmp_dic.rect_factor_disc.left - 1, 0), Math.max(tmp_dic.rect_factor_disc.top - 1, 0), tmp_dic.rect_factor_disc.width + 2, tmp_dic.rect_factor_disc.height + 2)).clone();
+          if (match_tmpl_min_max_loc(img_tgt, tmpl_factor_disc).maxVal > thres_match_tmpl_disc) {
+            l_tmp.push(tmp_dic);
+          }
+          tmpl_factor_disc.delete();
+          img_tgt.delete();
         }
       }
     }
@@ -1415,7 +1428,9 @@ function detectFactor_by_gamma(eles_scroll_canvas) {
     l_out.push(l_tmp);
     mv_contours.delete();
     mv_hierarchy.delete();
-    src.delete();
+    img_src.delete();
+    img_src_gamma.delete();
+    msk_1factor.delete();
     tmpCanvasElement.remove();
   })
   return l_out;

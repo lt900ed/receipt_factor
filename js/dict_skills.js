@@ -6,7 +6,7 @@ const dict_skills =
  'JBCクラシック': {'iconId': '3002141'},
  'JBCスプリント': {'iconId': '3003141'},
  'JDダービー': {'iconId': '10021'},
- 'LArcの希望': {'iconId': '20011'},
+ 'L`Arcの希望': {'iconId': '20011'},
  'L`Arcシナリオ': {'iconId': '3002131'},
  'NHKマイルC': {'iconId': '3001131'},
  'URAシナリオ': {'iconId': '3001121'},
