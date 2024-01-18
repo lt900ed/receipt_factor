@@ -23,8 +23,9 @@ const rect_prop = {
   speed_val: [315, 556, 103, 37],
   growth_rate: [240, 848, 89, 34],
   register_partner: [541, 880, 454, 129],
+  factor_area_left: [410, -20, 437, 90],
   factor_disc_left: [427, 0, 36, 36],
-  factor_icon_left: [418, 0, 54, 54],
+  factor_icon_left: [418, -9, 54, 54],
   factor_text_left: [469, 0, 372, 33],
   header_text_result_table: [686, 74, 165, 61],
   header_text_uma_detail: [639, 74, 258, 61],
@@ -120,6 +121,7 @@ const thres_common_diff_y1 = 20;
 const thres_common_diff_y2 = 12;
 const thres_scroll_bar_position = 210;
 const thres_scbar_h = 0.90;
+const thres_1factor = 140;
 
 // パラメータ
 const force_one_group = false;
@@ -1201,6 +1203,7 @@ function generateReceipt(imgs, l_group, l_relative_height) {
     resolve(imgs_tmp);
   })
 }
+// 2024/1/19 未使用
 function detectFactor(eles_scroll_canvas) {
   let l_scroll_canvas = Array.from(eles_scroll_canvas);
   const n_group = l_scroll_canvas.length;
@@ -1306,6 +1309,114 @@ function detectFactor(eles_scroll_canvas) {
     })
     l_out.push(l_tmp);
     tmpImg.delete()
+  })
+  return l_out;
+}
+function gamma_correction(canvas_in, gamma_val) {
+  let canvas_out = document.createElement('canvas');
+  canvas_out.width = canvas_in.width;
+  canvas_out.height = canvas_in.height;
+
+  let ctx = canvas_in.getContext('2d');
+  let c_src = ctx.getImageData(0, 0, canvas_in.width, canvas_in.height);
+  let c_dst = ctx.createImageData(canvas_in.width, canvas_in.height);
+  let int_g = 0.1;
+  const correctify = val => 255 * Math.pow(val / 255, 1 / gamma_val);
+  for (let i = 0; i < c_src.data.length; i += 4) {
+    c_dst.data[i] = correctify(c_src.data[i]);
+    c_dst.data[i + 1] = correctify(c_src.data[i + 1]);
+    c_dst.data[i + 2] = correctify(c_src.data[i + 2]);
+    c_dst.data[i + 3] = c_src.data[i + 3];
+  }
+  canvas_out.getContext('2d').putImageData(c_dst, 0, 0);
+  return canvas_out;
+}
+function detectFactor_by_gamma(eles_scroll_canvas) {
+  let l_out = [];
+  // 因子1枠テンプレ画像読み込み
+  let ele_tmpl_1factor = document.getElementById('tmpl1Factor');
+  let canvas_tmpl_1factor = document.createElement('canvas');
+  canvas_tmpl_1factor.width = ele_tmpl_1factor.naturalWidth;
+  canvas_tmpl_1factor.height = ele_tmpl_1factor.naturalHeight;
+  // テンプレ画像をキャンバスに書き込み
+  canvas_tmpl_1factor.getContext('2d').drawImage(ele_tmpl_1factor, 0, 0);
+  canvas_tmpl_1factor = gamma_correction(canvas_tmpl_1factor, 0.1);
+  // テンプレ画像で特徴点検出
+  let src_tmpl = cv.imread(canvas_tmpl_1factor);
+  cv.cvtColor(src_tmpl, src_tmpl, cv.COLOR_RGBA2GRAY, 0);
+  cv.threshold(src_tmpl, src_tmpl, thres_1factor, 255, cv.THRESH_BINARY);
+  let mv_tmpl_contours = new cv.MatVector();
+  let mv_tmpl_hierarchy = new cv.Mat();
+  cv.findContours(src_tmpl, mv_tmpl_contours, mv_tmpl_hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+  // 小さい輪郭は除外して配列に再格納
+  let l_tmpl_contours_only_large = [];
+  for (let i = 0; i < mv_tmpl_contours.size(); i++) {
+    if (cv.contourArea(mv_tmpl_contours.get(i)) > (Math.min(src_tmpl.cols, src_tmpl.rows) ** 2) / 50) {
+      l_tmpl_contours_only_large.push(mv_tmpl_contours.get(i));
+    }
+  };
+  // 大きい順に2番目のを因子1枠の輪郭として採用
+  l_tmpl_contours_only_large.sort((first, second) => cv.contourArea(second) - cv.contourArea(first));
+  let msk_close = l_tmpl_contours_only_large[1];
+  mv_tmpl_contours.delete();
+  mv_tmpl_hierarchy.delete();
+  src_tmpl.delete();
+  canvas_tmpl_1factor.remove();
+
+  let l_scroll_canvas = Array.from(eles_scroll_canvas);
+  // グループ毎に処理
+  l_scroll_canvas.forEach((sc) => {
+    let l_tmp = [];
+    // ガンマ補正
+    let tmpCanvasElement = gamma_correction(sc, 0.1);
+
+    // ガンマ補正後のスクロール部を使って特徴点マッチング
+    let src = cv.imread(tmpCanvasElement);
+    cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
+    cv.threshold(src, src, thres_1factor, 255, cv.THRESH_BINARY);
+    let mv_contours = new cv.MatVector();
+    let mv_hierarchy = new cv.Mat();
+    cv.findContours(src, mv_contours, mv_hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+    let l_rect_1factor = [];
+    for (let i = 0; i < mv_contours.size(); ++i) {
+      // 小さい領域は無視
+      if (cv.contourArea(mv_contours.get(i)) > (Math.min(src.cols, src.rows) ** 2) / 50) {
+        is_close_val = cv.matchShapes(mv_contours.get(i), msk_close, cv.CONTOURS_MATCH_I3, 0);
+        if (is_close_val < thres_cont_close) {
+          // console.log(cv.boundingRect(mv_contours.get(i)), is_close_val);
+          let tmp_rect = cv.boundingRect(mv_contours.get(i));
+          let tmp_scale = tmp_rect.width / rect_prop.factor_area_left[2];
+          // l_rect_1factor.push(cv.boundingRect(mv_contours.get(i)));
+          l_tmp.push({
+            rect_factor_disc: {
+              left: tmp_rect.x + Math.floor((rect_prop.factor_disc_left[0] - rect_prop.factor_area_left[0]) * tmp_scale),
+              top: tmp_rect.y + Math.floor((rect_prop.factor_disc_left[1] - rect_prop.factor_area_left[1]) * tmp_scale),
+              width: Math.floor(rect_prop.factor_disc_left[2] * tmp_scale),
+              height: Math.floor(rect_prop.factor_disc_left[3] * tmp_scale)
+            },
+            // アイコンの座標は盾の中心がまるポチと同じになるように
+            rect_factor_icon: {
+              left: tmp_rect.x + Math.floor((rect_prop.factor_icon_left[0] - rect_prop.factor_area_left[0]) * tmp_scale),
+              top: tmp_rect.y + Math.floor((rect_prop.factor_icon_left[1] - rect_prop.factor_area_left[1]) * tmp_scale),
+              width: Math.floor(rect_prop.factor_icon_left[2] * tmp_scale),
+              height: Math.floor(rect_prop.factor_icon_left[3] * tmp_scale)
+            },
+            rect_factor_text: {
+              left: tmp_rect.x + Math.floor((rect_prop.factor_text_left[0] - rect_prop.factor_area_left[0]) * tmp_scale),
+              top: tmp_rect.y + Math.floor((rect_prop.factor_text_left[1] - rect_prop.factor_area_left[1]) * tmp_scale),
+              width: Math.floor(rect_prop.factor_text_left[2] * tmp_scale),
+              height: Math.floor(rect_prop.factor_text_left[3] * tmp_scale)
+            }
+          })
+        }
+      }
+    }
+    // console.log(l_tmp);
+    l_out.push(l_tmp);
+    mv_contours.delete();
+    mv_hierarchy.delete();
+    src.delete();
+    tmpCanvasElement.remove();
   })
   return l_out;
 }

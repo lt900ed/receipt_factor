@@ -443,7 +443,7 @@ async function generatePhoto() {
     if (document.getElementById('showSkillIcon').checked) {
       console.log('スキルアイコン追加');
       // 因子の表示位置取得
-      let l_detected_factor = detectFactor(document.getElementsByClassName('canvasScroll'));
+      let l_detected_factor = detectFactor_by_gamma(document.getElementsByClassName('canvasScroll'));
       changePercentage(75);
       await repaint();
       // 因子名のOCR処理
