@@ -1378,7 +1378,6 @@ function detectFactor_by_gamma(eles_scroll_canvas) {
     let mv_contours = new cv.MatVector();
     let mv_hierarchy = new cv.Mat();
     cv.findContours(img_src_gamma, mv_contours, mv_hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
-    let l_rect_1factor = [];
     for (let i = 0; i < mv_contours.size(); ++i) {
       // 小さい領域は無視
       if (cv.contourArea(mv_contours.get(i)) > (Math.min(img_src_gamma.cols, img_src_gamma.rows) ** 2) / 50) {
@@ -1430,9 +1429,9 @@ function detectFactor_by_gamma(eles_scroll_canvas) {
     mv_hierarchy.delete();
     img_src.delete();
     img_src_gamma.delete();
-    msk_1factor.delete();
     tmpCanvasElement.remove();
   })
+  msk_1factor.delete();
   return l_out;
 }
 function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
