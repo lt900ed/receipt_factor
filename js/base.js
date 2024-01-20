@@ -448,7 +448,7 @@ async function generatePhoto() {
       await repaint();
       // 因子名のOCR処理
       l_detected_factor = await ocr_factor_text(document.getElementsByClassName('canvasScroll'), l_detected_factor);
-      let ocr_result_text = l_detected_factor.map(d => d.filter(d => d.factor_text != '' && !(d.factor_text in dict_skills)).map((d) => d.factor_text).join());
+      let ocr_result_text = l_detected_factor.map(d => d.filter(d => 'factor_text' in d && d.factor_text != '' && !(d.factor_text in dict_skills)).map((d) => d.factor_text).join());
       ocr_result_text = ocr_result_text.filter(d => d != '').join();
       if (!ocr_result_text == '') {
         document.getElementById('overviewOCRResult').classList.remove('hidden');

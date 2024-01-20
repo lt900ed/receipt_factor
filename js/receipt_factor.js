@@ -114,7 +114,7 @@ const thres_match_tmpl = 0.8;
 const thres_match_tmpl_basic_info = 0.85;
 const thres_match_tmpl_higher = 0.55;
 const thres_match_tmpl_rayout_type = 0.6;
-const thres_match_tmpl_disc = 0.3;
+const thres_match_tmpl_disc = 0.1;
 const thres_match_tmpl_disc_rate = 0.85;
 const thres_header = 0.9;
 const thres_common_diff_y1 = 20;
@@ -122,6 +122,7 @@ const thres_common_diff_y2 = 12;
 const thres_scroll_bar_position = 210;
 const thres_scbar_h = 0.90;
 const thres_1factor = 140;
+const thres_1factor_color = 0.3;
 
 // パラメータ
 const force_one_group = false;
@@ -450,7 +451,7 @@ function detect_rects(img_in) {
       cv.inRange(
         img_find_header,
         new cv.Mat(img_find_header.rows, img_find_header.cols, img_find_header.type(), [20, 150, 0, 0]),
-        new cv.Mat(img_find_header.rows, img_find_header.cols, img_find_header.type(), [80, 255, 255, 0]),
+        new cv.Mat(img_find_header.rows, img_find_header.cols, img_find_header.type(), [60, 255, 255, 0]),
         green);
 
       // 上から見ていってほぼ全セルが緑っぽい行(＝ウマ娘詳細ヘッダーの始まり)をy_actに格納
@@ -817,7 +818,7 @@ function trim_parts(l_mat, l_rects) {
           l_sum_val_by_y.push(tmp_sum / img_scroll_bar_gray.cols);
         }
         img_scroll_bar_gray.delete();
-        // スクロールバーの中央を取得して格納
+        // スクロールバーの中央と長さを取得して格納
         detect_scroll_bar_position(obj_tmp, l_sum_val_by_y);
       }
       imgs.push(obj_tmp);
@@ -1416,7 +1417,26 @@ function detectFactor_by_gamma(eles_scroll_canvas) {
           // しきい値以上だったら因子名読み込み対象に追加
           let img_tgt = img_src.roi(new cv.Rect(Math.max(tmp_dic.rect_factor_disc.left - 1, 0), Math.max(tmp_dic.rect_factor_disc.top - 1, 0), tmp_dic.rect_factor_disc.width + 2, tmp_dic.rect_factor_disc.height + 2)).clone();
           if (match_tmpl_min_max_loc(img_tgt, tmpl_factor_disc).maxVal > thres_match_tmpl_disc) {
+            // 塗りつぶし色を確認して赤青緑因子を除外
+            let l_res_color = [];
+            let img_1factor = img_src.roi(tmp_rect).clone();
+            cv.cvtColor(img_1factor, img_1factor, cv.COLOR_RGB2HSV, 0);
+            l_res_color.push({'color': 'red', 'val': calc_color_rate(img_1factor, [155, 100, 0, 0], [175, 205, 255, 0])});
+            // l_res_color.push({'color': 'red', 'val': calc_color_rate(img_1factor, [0, 100, 0, 0], [15, 205, 255, 0])});
+            l_res_color.push({'color': 'blue', 'val': calc_color_rate(img_1factor, [90, 150, 0, 0], [110, 255, 255, 0])});
+            l_res_color.push({'color': 'green', 'val': calc_color_rate(img_1factor, [30, 150, 0, 0], [50, 255, 255, 0])});
+            l_res_color.sort((first, second) => second['val'] - first['val']);
+            // 三色どれもしきい値以下なら白因子扱い
+            if (l_res_color[0]['val'] > thres_1factor_color) {
+              tmp_dic['bg_color'] = l_res_color[0]['color'];
+              tmp_dic['bg_color_val'] = l_res_color[0]['val'];
+            } else {
+              tmp_dic['bg_color'] = 'white';
+              tmp_dic['bg_color_val'] = 1;
+            }
+            // console.log(tmp_rect, tmp_dic['bg_color'], tmp_dic['bg_color_val']);
             l_tmp.push(tmp_dic);
+            img_1factor.delete();
           }
           tmpl_factor_disc.delete();
           img_tgt.delete();
@@ -1433,6 +1453,24 @@ function detectFactor_by_gamma(eles_scroll_canvas) {
   })
   msk_1factor.delete();
   return l_out;
+}
+function calc_color_rate(img_in, hsv_from, hsv_to) {
+  let img_rgb = new cv.Mat();
+  cv.inRange(
+    img_in,
+    new cv.Mat(img_in.rows, img_in.cols, img_in.type(), hsv_from),
+    new cv.Mat(img_in.rows, img_in.cols, img_in.type(), hsv_to),
+    img_rgb);
+
+  let tmp_sum = 0;
+  for (let i = 0; i < img_rgb.rows; i++) {
+    for (let j = 0; j < img_rgb.cols; j++) {
+      tmp_sum += img_rgb.ucharAt(i, j);
+    }
+  }
+  let val_out = tmp_sum / (255 * img_rgb.rows * img_rgb.cols);
+  img_rgb.delete();
+  return val_out
 }
 function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
   return new Promise(async function(resolve){
@@ -1454,41 +1492,44 @@ function ocr_factor_text(eles_scroll_canvas, l_detected_factor) {
     // await worker.setParameters({tessedit_char_whitelist: char_whitelist});
     for (let i = 0; i < l_detected_factor.length; i++) {
       for (let j = 0; j < l_detected_factor[i].length; j++) {
-        const tmpCanvasElement = document.createElement('canvas');
-        // tmpCanvasElement.setAttribute('id', 'tmpCanvasElement' + i);
-        const w = Math.max(l_detected_factor[i][j].rect_factor_text.width, Math.floor(l_detected_factor[i][j].rect_factor_text.width / l_detected_factor[i][j].rect_factor_text.height * min_height_factor_text));
-        const h = Math.max(l_detected_factor[i][j].rect_factor_text.height, min_height_factor_text);
-        tmpCanvasElement.width = w;
-        tmpCanvasElement.height = h;
-        tmpCanvasElement.getContext('2d').drawImage(
-          l_scroll_canvas[i],
-          l_detected_factor[i][j].rect_factor_text.left,
-          l_detected_factor[i][j].rect_factor_text.top,
-          l_detected_factor[i][j].rect_factor_text.width,
-          l_detected_factor[i][j].rect_factor_text.height,
-          0, 0, w, h);
-        const data = await worker.recognize(tmpCanvasElement, {});
-        console.log(data);
-        tmpCanvasElement.remove();
-        // console.log(text);
-        l_detected_factor[i][j]['factor_text'] = normalize_text(data.data.text, regexps);
+        let tmp_factor = l_detected_factor[i][j];
+        if (tmp_factor.bg_color == 'white') {
+          const tmpCanvasElement = document.createElement('canvas');
+          // tmpCanvasElement.setAttribute('id', 'tmpCanvasElement' + i);
+          const w = Math.max(tmp_factor.rect_factor_text.width, Math.floor(tmp_factor.rect_factor_text.width / tmp_factor.rect_factor_text.height * min_height_factor_text));
+          const h = Math.max(tmp_factor.rect_factor_text.height, min_height_factor_text);
+          tmpCanvasElement.width = w;
+          tmpCanvasElement.height = h;
+          tmpCanvasElement.getContext('2d').drawImage(
+            l_scroll_canvas[i],
+            tmp_factor.rect_factor_text.left,
+            tmp_factor.rect_factor_text.top,
+            tmp_factor.rect_factor_text.width,
+            tmp_factor.rect_factor_text.height,
+            0, 0, w, h);
+          const data = await worker.recognize(tmpCanvasElement, {});
+          // console.log(data);
+          tmpCanvasElement.remove();
+          // console.log(text);
+          tmp_factor['factor_text'] = normalize_text(data.data.text, regexps);
 
-        //アイコン描画
-        let skill_icon_id = '';
-        if (l_detected_factor[i][j].factor_text in dict_skills) {
-          skill_icon_id = 'skillIcon' + dict_skills[l_detected_factor[i][j].factor_text].iconId;
-        } else {
-          skill_icon_id = 'skillIconUnknown';
+          //アイコン描画
+          let skill_icon_id = '';
+          if (tmp_factor.factor_text in dict_skills) {
+            skill_icon_id = 'skillIcon' + dict_skills[tmp_factor.factor_text].iconId;
+          } else {
+            skill_icon_id = 'skillIconUnknown';
+          }
+          // console.log(skill_icon_id);
+          // console.log(tmp_factor.rect_factor_icon);
+          l_scroll_canvas[i].getContext('2d').drawImage(
+            document.getElementById(skill_icon_id),
+            tmp_factor.rect_factor_icon.left,
+            tmp_factor.rect_factor_icon.top,
+            tmp_factor.rect_factor_icon.width,
+            tmp_factor.rect_factor_icon.height,
+          )
         }
-        console.log(skill_icon_id);
-        console.log(l_detected_factor[i][j].rect_factor_icon);
-        l_scroll_canvas[i].getContext('2d').drawImage(
-          document.getElementById(skill_icon_id),
-          l_detected_factor[i][j].rect_factor_icon.left,
-          l_detected_factor[i][j].rect_factor_icon.top,
-          l_detected_factor[i][j].rect_factor_icon.width,
-          l_detected_factor[i][j].rect_factor_icon.height,
-        )
       }
     }
     await worker.terminate();
@@ -1507,7 +1548,7 @@ function normalize_text(text, regexps) {
         if (t == t_tmp) {
           break;
         } else {
-          console.log(t_tmp, t);
+          // console.log(t_tmp, t);
           t = t_tmp;
         }
       }
