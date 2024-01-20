@@ -366,6 +366,8 @@ async function generatePhoto() {
       throw new Error('画像が読み込まれていません。');
     } else if (document.getElementById('btnSubmit').classList.contains('cvNotReady')) {
       throw new Error('ライブラリの読み込みが完了していません。');
+    } else if (!'findLastIndex' in Array.prototype) {
+      throw new Error('必要な機能がブラウザにありません。iOS15.4未満をお使いの場合は最新版へアップデートして下さい。');
     }
     // ローディング開始
     changePercentage(0);
