@@ -209,7 +209,12 @@ function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, 
     l_max_rh[current_group] = Math.max(...l_relative_height.filter((d, i) => l_group[i] == current_group));
     tmp_h += l_max_rh[current_group];
     // 一番下の画像の高さを加算
-    tmp_h += imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == l_max_rh[current_group])[0].scroll.rows;
+    let img_footer = imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == l_max_rh[current_group])[0]
+    tmp_h += img_footer.scroll.rows;
+    // 汎用レイアウトならフッター分も加算
+    if (['common_header_scroll', 'common_scroll_only'].includes(img_footer.rayout_type)) {
+      tmp_h += img_footer.footer.rows;
+    }
     // 最も小さい画像のグループに合わせて縮小
     tmp_h *= tmp_scale;
     // キャンバス生成
@@ -230,11 +235,16 @@ function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, 
       // 他は下から貼り付けて切れ目が出るのを防ぐ
       l_index_by_rh = [...Array(imgs.length).keys()].filter((d, i) => l_group[i] == current_group).sort((first, second) => l_relative_height[second] - l_relative_height[first]);
     }
-    l_index_by_rh.forEach(function(i) {
-      let img = imgs[i];
+    l_index_by_rh.forEach(function(v, i) {
+      let img = imgs[v];
       // スクロール部分を描画
-      // console.log(i, current_group, w_one_col, (l_h_header[current_group] + l_relative_height[i]) * tmp_scale, img.scroll.cols * tmp_scale, img.scroll.rows * tmp_scale);
-      drawMat2Canvas(img.scroll, canvas_element, 0, l_relative_height[i] * tmp_scale, img.scroll.cols * tmp_scale, img.scroll.rows * tmp_scale);
+      // console.log(i, current_group, w_one_col, (l_h_header[current_group] + l_relative_height[v]) * tmp_scale, img.scroll.cols * tmp_scale, img.scroll.rows * tmp_scale);
+      drawMat2Canvas(img.scroll, canvas_element, 0, l_relative_height[v] * tmp_scale, img.scroll.cols * tmp_scale, img.scroll.rows * tmp_scale);
+      // 汎用レイアウトならフッターも描画
+      console.log(i, v, img.rayout_type);
+      if (i == l_index_by_rh.length - 1 && ['common_header_scroll', 'common_scroll_only'].includes(img.rayout_type)) {
+        drawMat2Canvas(img.footer, canvas_element, 0, (l_relative_height[v] + img.scroll.rows) * tmp_scale, img.footer.cols * tmp_scale, img.footer.rows * tmp_scale);
+      }
     })
   })
 };
