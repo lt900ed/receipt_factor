@@ -130,8 +130,8 @@ const all_rayout_type = ['normal', 'with_growth_rate', 'with_register_partner', 
 const load_parts = ['header', 'basic_info', 'tab', 'scroll_full_width', 'scroll', 'scroll_bar', 'bottom_row', 'bottom_row_higher', 'icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val'];
 const load_parts_simple = ['header', 'basic_info', 'scroll_full_width', 'scroll', 'scroll_bar', 'bottom_row', 'bottom_row_higher'];
 const load_parts_more_simple = ['header', 'scroll_full_width', 'scroll', 'scroll_bar', 'bottom_row', 'bottom_row_higher'];
-const load_parts_common = ['header', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
-const load_parts_scroll_only = ['scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
+const load_parts_common = ['header', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher', 'footer'];
+const load_parts_scroll_only = ['scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher', 'footer'];
 const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val', 'tab'];
 const load_parts_by_rayout_type = {
   'normal': load_parts,
@@ -741,6 +741,13 @@ function get_unknown_rects(l_mat, l_rects) {
           'y': tmp_y1,
           'width': tmp_w,
           'height': tmp_y2 - tmp_y1
+        };
+        // フッターはスクロール部の下全部
+        l_rects[i].rects.footer = {
+          'x': Math.floor((l_mat[i].cols - tmp_w) / 2),
+          'y': tmp_y2,
+          'width': tmp_w,
+          'height': l_mat[i].rows - tmp_y2
         };
       })
 
