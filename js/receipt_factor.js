@@ -132,6 +132,7 @@ const load_parts_simple = ['header', 'basic_info', 'scroll_full_width', 'scroll'
 const load_parts_more_simple = ['header', 'scroll_full_width', 'scroll', 'scroll_bar', 'bottom_row', 'bottom_row_higher'];
 const load_parts_common = ['header', 'scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher', 'footer'];
 const load_parts_scroll_only = ['scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher', 'footer'];
+const load_parts_1picture = ['scroll_full_width', 'scroll', 'bottom_row', 'bottom_row_higher'];
 const tgt_parts_for_group = ['icon', 'eval_val', 'speed_val', 'stamina_val', 'power_val', 'guts_val', 'int_val', 'tab'];
 const load_parts_by_rayout_type = {
   'normal': load_parts,
@@ -145,6 +146,7 @@ const load_parts_by_rayout_type = {
   'gougai': load_parts_simple,
   'common_scroll_only': load_parts_scroll_only,
   'common_header_scroll': load_parts_common,
+  'common_1picture': load_parts_1picture,
 }
 const diff_window_size = 32;
 
@@ -303,22 +305,25 @@ function smoothing_list(l, window_size) {
   };
   return out;
 }
-function detect_common_scroll_area(l, l_smooth, window_size) {
-  let out = {};
-  let tmp_y1 = l_smooth.findIndex(e => e > thres_common_diff_y1);
-  if (tmp_y1 != -1) {
-    tmp_y1 = l.findIndex((e, i) => i >= tmp_y1 && e > thres_common_diff_y1);
+function detect_common_scroll_area(l, l_smooth, window_size, mode_xy) {
+  let tmp_v1 = l_smooth.findIndex(e => e > thres_common_diff_y1);
+  if (tmp_v1 != -1) {
+    tmp_v1 = l.findIndex((e, i) => i >= tmp_v1 && e > thres_common_diff_y1);
   }
-  let tmp_y2 = l_smooth.findLastIndex(e => e > thres_common_diff_y2);
-  if (tmp_y2 != -1) {
-    tmp_y2 = l.findLastIndex((e, i) =>
-      i <= tmp_y2 + window_size &&
+  let tmp_v2 = l_smooth.findLastIndex(e => e > thres_common_diff_y2);
+  if (tmp_v2 != -1) {
+    tmp_v2 = l.findLastIndex((e, i) =>
+      i <= tmp_v2 + window_size &&
       // e > thres_common_diff_y2);
-      e > thres_common_diff_y2 &&
-      // bottom_rowで参照される範囲に固定表示エリアがない
-      l_smooth.slice(i - Math.floor((i - tmp_y1) / 16), i).filter(f => f <= thres_common_diff_y2).length == 0);
+      e > thres_common_diff_y2 && (
+        // x軸を判定する時は追加条件なし
+        (mode_xy == 'x') ||
+        // y軸を判定する時はbottom_rowで参照される範囲に固定表示エリアがない
+        (mode_xy == 'y' && l_smooth.slice(i - Math.floor((i - tmp_v1) / 16), i).filter(f => f <= thres_common_diff_y2).length == 0)
+      )
+    );
   }
-  return {'y1': tmp_y1, 'y2': tmp_y2}
+  return {'v1': tmp_v1, 'v2': tmp_v2}
 }
 function detect_scroll_bar_position(obj, l_smooth) {
   let tmp_y1 = l_smooth.findIndex(e => e < thres_scroll_bar_position);
@@ -410,15 +415,19 @@ function detect_rects(img_in) {
         'is_close_val': is_close_val
       });
     } else if (is_close_val < thres_cont_close && is_close_val < min_is_close_val) {
-      cont_out.shift();
-      info_out.shift();
-      cont_out.push(mv_contours_only_large.get(i));
-      info_out.push({
-        'index': i,
-        'is_close': true,
-        'is_close_val': is_close_val
-      });
-      min_is_close_val = is_close_val;
+      let tmp_rect = cv.boundingRect(mv_contours_only_large.get(i));
+      if (tmp_rect.width > tmp_rect.height) {
+        // 類似度がしきい値より高いかつ現時点最高かつ横長ならリスト更新
+        cont_out.shift();
+        info_out.shift();
+        cont_out.push(mv_contours_only_large.get(i));
+        info_out.push({
+          'index': i,
+          'is_close': true,
+          'is_close_val': is_close_val
+        });
+        min_is_close_val = is_close_val;
+      }
     }
   };
   if (cont_out.length == 0) {
@@ -429,9 +438,8 @@ function detect_rects(img_in) {
     // console.log('rect_close_area', cv.contourArea(cont_out[0]));
     let rect_close = cv.boundingRect(cont_out[0]);
     // 閉じるが横にズレていた時のため座標をセンタリング
-    rect_close.x = Math.round(img_in.cols / 2 - rect_close.width / 2);
+    // rect_close.x = Math.round(img_in.cols / 2 - rect_close.width / 2);
     // 一度wholeの枠座標を計算
-    // console.log(rect_close);
     let rect_whole = calc_rects(rect_close, {'whole': rect_prop.whole, 'close': rect_prop.close});
     // console.log(rect_close);
     // console.log(rect_whole);
@@ -606,13 +614,12 @@ function detect_rects(img_in) {
         rects = calc_rects(rect_close, rect_prop_added);
         // console.log(rayout_type);
         // console.log(rects);
-        // console.log(rect_whole.whole);
         // console.log(rects.whole);
         if (!(
           0 <= rects.whole.x &&
           0 <= rects.whole.y &&
-          rects.whole.x + rects.whole.width < img_in.cols &&
-          rects.whole.y + rects.whole.height < img_in.rows)) {
+          rects.whole.x + rects.whole.width <= img_in.cols &&
+          rects.whole.y + rects.whole.height <= img_in.rows)) {
         throw new Error('ウマ娘詳細エリアが正しく検出出来ない画像があります。');
         }
         // 輪郭描画
@@ -667,15 +674,15 @@ function get_unknown_rects(l_mat, l_rects) {
     console.log('レイアウト不明画像について汎用処理でスクロール範囲特定');
     let l_index_tgt = [...Array(l_rects.length).keys()].filter((e) => l_rects[e].rayout_type == 'unknown')
     console.log(l_index_tgt);
-    // 画像中央の16:9部分だけ切り出し
-    let tmp_w = Math.min(l_mat[l_index_tgt[0]].cols, Math.floor(l_mat[l_index_tgt[0]].rows / 16 * 9));
+    // 画像中央の16:9部分だけ切り出しは廃止
+    // let tmp_w = Math.min(l_mat[l_index_tgt[0]].cols, Math.floor(l_mat[l_index_tgt[0]].rows / 16 * 9));
     if (l_index_tgt.length == 1) {
       // unknownが1枚だけなら全面スクロール範囲扱いで枠座標出力
-      l_rects[l_index_tgt[0]].rayout_type = 'common_scroll_only';
+      l_rects[l_index_tgt[0]].rayout_type = 'common_1picture';
       l_rects[l_index_tgt[0]].rects.scroll_full_width = {
-        'x': Math.floor((l_mat[l_index_tgt[0]].cols - tmp_w) / 2),
+        'x': 0,
         'y': 0,
-        'width': tmp_w,
+        'width': l_mat[l_index_tgt[0]].cols,
         'height': l_mat[l_index_tgt[0]].rows
       };
     } else {
@@ -690,6 +697,9 @@ function get_unknown_rects(l_mat, l_rects) {
       let tmp_diff = new cv.Mat();
       let tmp_y1 = img_0_gray.rows;
       let tmp_y2 = 0;
+      let tmp_x1 = img_0_gray.cols;
+      let tmp_x2 = 0;
+      let tmp_sum = 0;
       l_index_tgt.slice(1).forEach(function(i){
         // 2枚目以降を1枚目と比較し差分範囲を取得
         tmp_diff = new cv.Mat();
@@ -697,31 +707,59 @@ function get_unknown_rects(l_mat, l_rects) {
         cv.cvtColor(img_i_gray, img_i_gray, cv.COLOR_RGBA2GRAY, 0);
         cv.absdiff(img_0_gray, img_i_gray, tmp_diff);
 
-        let l_sum_diff_by_y = [];
-        for (let i = 0; i < tmp_diff.rows; i++) {
+        // 一列毎に差異を合計
+        let l_sum_diff_by_x = [];
+        for (let i = 0; i < tmp_diff.cols; i++) {
           tmp_sum = 0;
-          // 中央16:9範囲のみ検証
-          for (let j = Math.floor((tmp_diff.cols - tmp_w) / 2); j < Math.floor((tmp_diff.cols - tmp_w) / 2) + tmp_w; j++) {
+          // 画像全体を検証
+          for (let j = 0; j < tmp_diff.rows; j++) {
             // ucharAtは1px毎に0~255で出力
             tmp_sum += tmp_diff.ucharAt(i, j);
           }
-          l_sum_diff_by_y.push(tmp_sum / tmp_w);
+          // heightで割って標準化
+          l_sum_diff_by_x.push(tmp_sum / tmp_diff.rows);
+        }
+        // 結果の平滑化
+        let l_sum_diff_by_x_smooth = smoothing_list(l_sum_diff_by_x, diff_window_size);
+        // console.log(l_sum_diff_by_x.join('\n'));
+        // console.log(l_sum_diff_by_x.map((e, i) => e + '\t' + l_sum_diff_by_x_smooth[Math.min(i, l_sum_diff_by_x_smooth.length - 1)]).join('\n'));
+        // console.log(l_sum_diff_by_x_smooth.join('\n'));
+        // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
+        let tmp_area_x = detect_common_scroll_area(l_sum_diff_by_x, l_sum_diff_by_x_smooth, diff_window_size, 'x');
+        // console.log(tmp_area);
+        if (tmp_area_x.v1 != -1) {
+          // スクロール範囲が見つかったら上書き、見つからなければ完全一致画像として何もしない
+          tmp_x1 = Math.min(tmp_x1, tmp_area_x.v1);
+          tmp_x2 = Math.max(tmp_x2, tmp_area_x.v2);
+        }
+
+        // 一行毎に差異を合計
+        let l_sum_diff_by_y = [];
+        for (let i = 0; i < tmp_diff.rows; i++) {
+          tmp_sum = 0;
+          // 前段で特定した幅で検証
+          for (let j = tmp_x1; j < tmp_x2; j++) {
+            // ucharAtは1px毎に0~255で出力
+            tmp_sum += tmp_diff.ucharAt(i, j);
+          }
+          // widthで割って標準化
+          l_sum_diff_by_y.push(tmp_sum / (tmp_x2 - tmp_x1));
         }
         // 結果の平滑化
         let l_sum_diff_by_y_smooth = smoothing_list(l_sum_diff_by_y, diff_window_size);
         // console.log(l_sum_diff_by_y.join('\n'));
-        // console.log(l_sum_diff_by_y.map((e, i) => e + '\t' + l_sum_diff_by_y_smooth[Math.min(i, l_sum_diff_by_y_smooth.length - 1)]).join('\n'));
+        console.log(l_sum_diff_by_y.map((e, i) => e + '\t' + l_sum_diff_by_y_smooth[Math.min(i, l_sum_diff_by_y_smooth.length - 1)]).join('\n'));
         // console.log(l_sum_diff_by_y_smooth.join('\n'));
         // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
-        let tmp_area = detect_common_scroll_area(l_sum_diff_by_y, l_sum_diff_by_y_smooth, diff_window_size);
+        let tmp_area = detect_common_scroll_area(l_sum_diff_by_y, l_sum_diff_by_y_smooth, diff_window_size, 'y');
         // console.log(tmp_area);
-        if (tmp_area.y1 != -1) {
+        if (tmp_area.v1 != -1) {
           // スクロール範囲が見つかったら上書き、見つからなければ完全一致画像として何もしない
-          tmp_y1 = Math.min(tmp_y1, tmp_area.y1);
-          tmp_y2 = Math.max(tmp_y2, tmp_area.y2);
+          tmp_y1 = Math.min(tmp_y1, tmp_area.v1);
+          tmp_y2 = Math.max(tmp_y2, tmp_area.v2);
         }
       })
-      // console.log(tmp_y1, tmp_y2);
+      console.log(tmp_x1, tmp_x2, tmp_y1, tmp_y2);
 
       // 全部のunknown画像で一番広いスクロール範囲を採用して各画像のrectsを生成
       l_index_tgt.forEach(function(i){
@@ -730,23 +768,23 @@ function get_unknown_rects(l_mat, l_rects) {
         } else {
           l_rects[i].rayout_type = 'common_header_scroll';
           l_rects[i].rects.header = {
-            'x': Math.floor((l_mat[i].cols - tmp_w) / 2),
+            'x': tmp_x1,
             'y': 0,
-            'width': tmp_w,
+            'width': tmp_x2 - tmp_x1,
             'height': tmp_y1
           };
         }
         l_rects[i].rects.scroll_full_width = {
-          'x': Math.floor((l_mat[i].cols - tmp_w) / 2),
+          'x': tmp_x1,
           'y': tmp_y1,
-          'width': tmp_w,
+          'width': tmp_x2 - tmp_x1,
           'height': tmp_y2 - tmp_y1
         };
         // フッターはスクロール部の下全部
         l_rects[i].rects.footer = {
-          'x': Math.floor((l_mat[i].cols - tmp_w) / 2),
+          'x': tmp_x1,
           'y': tmp_y2,
-          'width': tmp_w,
+          'width': tmp_x2 - tmp_x1,
           'height': l_mat[i].rows - tmp_y2
         };
       })
@@ -783,10 +821,12 @@ function trim_parts(l_mat, l_rects) {
     const n_tgt = l_mat.length;
     // レイアウトxパーツ毎の最小サイズを算出
     let tgt_sizes = {};
+    // console.log(l_rects);
     all_rayout_type.forEach(function(r){
       if (l_rects.filter((e) => e.rayout_type == r).length > 0) {
         tgt_sizes[r] = {};
         load_parts_by_rayout_type[r].forEach(function(p){
+          // console.log(r, p)
           let tmp_w = Math.min(...l_rects.filter((e) => e.rayout_type == r).map((d) => {return d.rects[p].width}));
           let tmp_h = Math.min(...l_rects.filter((e) => e.rayout_type == r).map((d) => {return d.rects[p].height}));
           tgt_sizes[r][p] = {'width': tmp_w, 'height': tmp_h};
