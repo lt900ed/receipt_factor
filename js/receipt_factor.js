@@ -117,8 +117,8 @@ const thres_match_tmpl_rayout_type = 0.6;
 const thres_match_tmpl_disc = 0.1;
 const thres_match_tmpl_disc_rate = 0.85;
 const thres_header = 0.9;
-const thres_common_diff_y1 = 20;
-const thres_common_diff_y2 = 12;
+const thres_common_diff_y1 = 8;
+const thres_common_diff_y2 = 6;
 const thres_scroll_bar_position = 210;
 const thres_scbar_h = 0.90;
 const thres_1factor = 140;
@@ -714,7 +714,7 @@ function get_unknown_rects(l_mat, l_rects) {
           // 画像全体を検証
           for (let j = 0; j < tmp_diff.rows; j++) {
             // ucharAtは1px毎に0~255で出力
-            tmp_sum += tmp_diff.ucharAt(i, j);
+            tmp_sum += tmp_diff.ucharAt(j, i);
           }
           // heightで割って標準化
           l_sum_diff_by_x.push(tmp_sum / tmp_diff.rows);
@@ -722,7 +722,7 @@ function get_unknown_rects(l_mat, l_rects) {
         // 結果の平滑化
         let l_sum_diff_by_x_smooth = smoothing_list(l_sum_diff_by_x, diff_window_size);
         // console.log(l_sum_diff_by_x.join('\n'));
-        // console.log(l_sum_diff_by_x.map((e, i) => e + '\t' + l_sum_diff_by_x_smooth[Math.min(i, l_sum_diff_by_x_smooth.length - 1)]).join('\n'));
+        console.log(l_sum_diff_by_x.map((e, i) => e + '\t' + l_sum_diff_by_x_smooth[Math.min(i, l_sum_diff_by_x_smooth.length - 1)]).join('\n'));
         // console.log(l_sum_diff_by_x_smooth.join('\n'));
         // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
         let tmp_area_x = detect_common_scroll_area(l_sum_diff_by_x, l_sum_diff_by_x_smooth, diff_window_size, 'x');
