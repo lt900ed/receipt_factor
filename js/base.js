@@ -400,13 +400,14 @@ async function generatePhoto() {
       tmpImg.delete();
     };
     // メイン加工関数呼び出し
-    let l_rects = await get_rects(l_mat);
+    let tmp_l_mat = await trim_by_platform(l_mat);
+    let l_rects = await get_rects(tmp_l_mat);
     if (is_show_skill_icon) {changePercentage(5)} else {changePercentage(10)};
     await repaint();
     if (l_rects.filter((e) => e.rayout_type == 'unknown').length >= 1) {
-      await get_unknown_rects(l_mat, l_rects);
+      await get_unknown_rects(tmp_l_mat, l_rects);
     }
-    let imgs = await trim_parts(l_mat, l_rects);
+    let imgs = await trim_parts(tmp_l_mat, l_rects);
     if (is_show_skill_icon) {changePercentage(10)} else {changePercentage(20)};
     await repaint();
 
@@ -488,6 +489,7 @@ async function generatePhoto() {
     document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
     // メモリ解放
     l_mat.forEach(function(m){m.delete();});
+    // tmp_l_mat.forEach(function(m){m.delete();});
     // dst.forEach(function(m){m.delete();});
     imgs.forEach(function(i){
       load_parts.forEach(function(p){

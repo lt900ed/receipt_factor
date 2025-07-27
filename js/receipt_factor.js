@@ -119,6 +119,7 @@ const thres_match_tmpl_disc_rate = 0.85;
 const thres_header = 0.9;
 const thres_common_diff_y1 = 8;
 const thres_common_diff_y2 = 6;
+const thres_pf_rayout_diff_x = 2;
 const thres_scroll_bar_position = 210;
 const thres_scbar_h = 0.90;
 const thres_1factor = 140;
@@ -149,6 +150,7 @@ const load_parts_by_rayout_type = {
   'common_1picture': load_parts_1picture,
 }
 const diff_window_size = 32;
+const trim_width_buffer = 0.1;
 
 function fn_sum(arr, fn) {
   if (fn) {
@@ -305,17 +307,17 @@ function smoothing_list(l, window_size) {
   };
   return out;
 }
-function detect_common_scroll_area(l, l_smooth, window_size, mode_xy) {
-  let tmp_v1 = l_smooth.findIndex(e => e > thres_common_diff_y1);
+function detect_common_scroll_area(l, l_smooth, window_size, mode_xy, thres_v1, thres_v2) {
+  let tmp_v1 = l_smooth.findIndex(e => e > thres_v1);
   if (tmp_v1 != -1) {
-    tmp_v1 = l.findIndex((e, i) => i >= tmp_v1 && e > thres_common_diff_y1);
+    tmp_v1 = l.findIndex((e, i) => i >= tmp_v1 && e > thres_v1);
   }
-  let tmp_v2 = l_smooth.findLastIndex(e => e > thres_common_diff_y2);
+  let tmp_v2 = l_smooth.findLastIndex(e => e > thres_v2);
   if (tmp_v2 != -1) {
     tmp_v2 = l.findLastIndex((e, i) =>
       i <= tmp_v2 + window_size &&
-      // e > thres_common_diff_y2);
-      e > thres_common_diff_y2 && (
+      // e > thres_v2);
+      e > thres_v2 && (
         // x軸を判定する時は追加条件なし
         (mode_xy == 'x') ||
         // y軸を判定する時はbottom_rowで参照される範囲に固定表示エリアがない
@@ -325,11 +327,140 @@ function detect_common_scroll_area(l, l_smooth, window_size, mode_xy) {
   }
   return {'v1': tmp_v1, 'v2': tmp_v2}
 }
+function detect_pf_rayout_scroll_area(l, l_smooth, window_size, thres_v) {
+  // ググプレ版、Steam版の左右のどれか判定するため、スクロール範囲のx軸の情報を取得
+  // 平滑化されたリストを先頭から参照し、0より大きい値の塊毎にその幅と合計値を集計
+  // 最も大きい塊をスクロール範囲とみなす
+  let l_cluster = [];
+  let tmp_start_i = -1;
+  l_smooth.forEach((v, i) => {
+    if (v > thres_v) {
+      if (tmp_start_i == -1) {
+        l_cluster.push({
+          'start_i': i,
+          'end_i': i,
+          'v_sum': v
+        });
+        tmp_start_i = i;
+      } else {
+        l_cluster[l_cluster.length - 1].end_i = i;
+        l_cluster[l_cluster.length - 1].v_sum += v;
+      }
+    } else {
+      if (tmp_start_i != -1) {
+        tmp_start_i = -1;
+      }
+    }
+  })
+  if (l_cluster.length == 0) {
+    // 塊を1個も発見出来なかったらエラー値で終了
+    return {'v1': -1, 'v2': -1}
+  }
+  // 最も大きい塊をスクロール範囲とみなす
+  l_cluster.sort((first, second) => second.v_sum - first.v_sum);
+  console.log(l_cluster);
+  // 非平滑化リスト上で正確な位置を取得
+  let tmp_v1 = l_cluster[0].start_i;
+  tmp_v1 = l.findIndex((e, i) => i >= tmp_v1 && e > thres_v);
+  let tmp_v2 = l_cluster[0].end_i;
+  tmp_v2 = l.findLastIndex((e, i) =>
+      i <= tmp_v2 + window_size &&
+      e > thres_v
+    );
+  return {'v1': tmp_v1, 'v2': tmp_v2}
+}
 function detect_scroll_bar_position(obj, l_smooth) {
   let tmp_y1 = l_smooth.findIndex(e => e < thres_scroll_bar_position);
   let tmp_y2 = l_smooth.findLastIndex(e => e < thres_scroll_bar_position);
   obj['scroll_bar_y'] = Math.floor((tmp_y1 + tmp_y2) / 2)
   obj['scroll_bar_h'] = Math.abs(tmp_y2 - tmp_y1)
+}
+function trim_by_platform(l_mat) {
+  return new Promise(function(resolve){
+    console.log('プラットフォーム毎のレイアウトに応じてトリミング');
+    console.log('枚数:', l_mat.length, '1枚目のheight,width:', l_mat[0].rows, l_mat[0].cols);
+    let l_mat_out = [];
+    if (l_mat.length <= 1) {
+      // 1枚だけならトリミングなし
+      l_mat_out = [...l_mat];
+    } else {
+      // 解像度一致確認
+      if (!(Math.min(...l_mat.map((d) => {return d.cols})) == Math.max(...l_mat.map((d) => {return d.cols})) &&
+          Math.min(...l_mat.map((d) => {return d.rows})) == Math.max(...l_mat.map((d) => {return d.rows})))) {
+        throw new Error('取り込み画像の解像度が一致していません。');
+      }
+      // 縦長ならトリミングなし
+      if (l_mat[0].cols < l_mat[0].rows) {
+        console.log('縦長画像のためトリミングをキャンセルします');
+        l_mat_out = [...l_mat];
+      } else {
+        // 横長ならググプレかSteamの左右どっちかスクロール範囲から判定
+        // 1枚目と2枚目以降を比較してスクロール箇所を特定
+        let img_0_gray = l_mat[0].clone();
+        cv.cvtColor(img_0_gray, img_0_gray, cv.COLOR_RGBA2GRAY, 0);
+        let img_i_gray = new cv.Mat();
+        let tmp_diff = new cv.Mat();
+        let tmp_x1 = img_0_gray.cols;
+        let tmp_x2 = 0;
+        let tmp_sum = 0;
+        let img_diff_sum = new cv.Mat();
+        let mask = new cv.Mat();
+        let dtype = -1;
+        l_mat.slice(1).forEach((mat, n) => {
+          // 2枚目以降を1枚目と比較し差分範囲を取得、全画像の差異を合計
+          tmp_diff = new cv.Mat();
+          img_i_gray = mat.clone();
+          cv.cvtColor(img_i_gray, img_i_gray, cv.COLOR_RGBA2GRAY, 0);
+          cv.absdiff(img_0_gray, img_i_gray, tmp_diff);
+          if (n == 0) {
+            img_diff_sum = tmp_diff.clone();
+          } else {
+            cv.add(tmp_diff, img_diff_sum, img_diff_sum, mask, dtype);
+          }
+        })
+        // 2値化
+        cv.adaptiveThreshold(img_diff_sum, img_diff_sum, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, 3, 2);
+        cv.bitwise_not(img_diff_sum, img_diff_sum);
+        // 一列毎に差異を合計
+        let l_sum_diff_by_x = [];
+        for (let i = 0; i < img_diff_sum.cols; i++) {
+          tmp_sum = 0;
+          // 画像全体を検証
+          for (let j = 0; j < img_diff_sum.rows; j++) {
+            // ucharAtは1px毎に0~255で出力
+            tmp_sum += img_diff_sum.ucharAt(j, i);
+          }
+          // heightで割って標準化
+          l_sum_diff_by_x.push(tmp_sum / img_diff_sum.rows);
+        }
+        // 結果の平滑化
+        let l_sum_diff_by_x_smooth = smoothing_list(l_sum_diff_by_x, diff_window_size);
+        // console.log(l_sum_diff_by_x.join('\n'));
+        // console.log(l_sum_diff_by_x.map((e, i) => e + '\t' + l_sum_diff_by_x_smooth[Math.min(i, l_sum_diff_by_x_smooth.length - 1)]).join('\n'));
+        // console.log(l_sum_diff_by_x_smooth.join('\n'));
+        // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
+        let tmp_area_x = detect_pf_rayout_scroll_area(l_sum_diff_by_x, l_sum_diff_by_x_smooth, diff_window_size, thres_pf_rayout_diff_x);
+        console.log(tmp_area_x);
+        if (tmp_area_x.v1 == -1) {
+          // スクロール範囲が特定出来なかったらエラー終了
+          throw new Error('スクロール範囲が特定出来ませんでした。同一画像を指定している可能性があります。');
+        }
+        // 取得した範囲の左右にバッファを持たせる
+        tmp_x1 = Math.max(0, Math.floor(tmp_area_x.v1 - (tmp_area_x.v2 - tmp_area_x.v1) * trim_width_buffer));
+        tmp_x2 = Math.min(img_0_gray.cols - 1, Math.floor(tmp_area_x.v2 + (tmp_area_x.v2 - tmp_area_x.v1) * trim_width_buffer));
+        console.log(new cv.Rect(tmp_x1, 0, tmp_x2 - tmp_x1, img_0_gray.rows));
+        l_mat.forEach(m => {
+          l_mat_out.push(m.roi(new cv.Rect(tmp_x1, 0, tmp_x2 - tmp_x1, img_0_gray.rows)).clone())
+        })
+        img_0_gray.delete();
+        img_i_gray.delete();
+        tmp_diff.delete();
+        img_diff_sum.delete();
+        mask.delete();
+      }
+    }
+    resolve(l_mat_out);
+  })
 }
 function detect_rects(img_in) {
   let mv_contours = new cv.MatVector();
@@ -437,7 +568,7 @@ function detect_rects(img_in) {
   } else {
     // console.log('rect_close_area', cv.contourArea(cont_out[0]));
     let rect_close = cv.boundingRect(cont_out[0]);
-    // 閉じるが横にズレていた時のため座標をセンタリング
+    // 閉じるが横にズレていた時のため座標をセンタリングは廃止
     // rect_close.x = Math.round(img_in.cols / 2 - rect_close.width / 2);
     // 一度wholeの枠座標を計算
     let rect_whole = calc_rects(rect_close, {'whole': rect_prop.whole, 'close': rect_prop.close});
@@ -640,7 +771,6 @@ function detect_rects(img_in) {
     }
   }
 
-
   // メモリ解放
   img_gray.delete();
   img_gray_half.delete();
@@ -687,10 +817,6 @@ function get_unknown_rects(l_mat, l_rects) {
       };
     } else {
       // unknownが2枚以上のとき
-      if (!(Math.min(...l_index_tgt.map((d) => {return l_mat[d].cols})) == Math.max(...l_index_tgt.map((d) => {return l_mat[d].cols})) &&
-          Math.min(...l_index_tgt.map((d) => {return l_mat[d].rows})) == Math.max(...l_index_tgt.map((d) => {return l_mat[d].rows})))) {
-        throw new Error('取り込み画像の解像度が一致していません。');
-      }
       let img_0_gray = l_mat[l_index_tgt[0]].clone();
       cv.cvtColor(img_0_gray, img_0_gray, cv.COLOR_RGBA2GRAY, 0);
       let img_i_gray = new cv.Mat();
@@ -722,10 +848,10 @@ function get_unknown_rects(l_mat, l_rects) {
         // 結果の平滑化
         let l_sum_diff_by_x_smooth = smoothing_list(l_sum_diff_by_x, diff_window_size);
         // console.log(l_sum_diff_by_x.join('\n'));
-        console.log(l_sum_diff_by_x.map((e, i) => e + '\t' + l_sum_diff_by_x_smooth[Math.min(i, l_sum_diff_by_x_smooth.length - 1)]).join('\n'));
+        // console.log(l_sum_diff_by_x.map((e, i) => e + '\t' + l_sum_diff_by_x_smooth[Math.min(i, l_sum_diff_by_x_smooth.length - 1)]).join('\n'));
         // console.log(l_sum_diff_by_x_smooth.join('\n'));
         // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
-        let tmp_area_x = detect_common_scroll_area(l_sum_diff_by_x, l_sum_diff_by_x_smooth, diff_window_size, 'x');
+        let tmp_area_x = detect_common_scroll_area(l_sum_diff_by_x, l_sum_diff_by_x_smooth, diff_window_size, 'x', thres_common_diff_y1, thres_common_diff_y2);
         // console.log(tmp_area);
         if (tmp_area_x.v1 != -1) {
           // スクロール範囲が見つかったら上書き、見つからなければ完全一致画像として何もしない
@@ -748,10 +874,10 @@ function get_unknown_rects(l_mat, l_rects) {
         // 結果の平滑化
         let l_sum_diff_by_y_smooth = smoothing_list(l_sum_diff_by_y, diff_window_size);
         // console.log(l_sum_diff_by_y.join('\n'));
-        console.log(l_sum_diff_by_y.map((e, i) => e + '\t' + l_sum_diff_by_y_smooth[Math.min(i, l_sum_diff_by_y_smooth.length - 1)]).join('\n'));
+        // console.log(l_sum_diff_by_y.map((e, i) => e + '\t' + l_sum_diff_by_y_smooth[Math.min(i, l_sum_diff_by_y_smooth.length - 1)]).join('\n'));
         // console.log(l_sum_diff_by_y_smooth.join('\n'));
         // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
-        let tmp_area = detect_common_scroll_area(l_sum_diff_by_y, l_sum_diff_by_y_smooth, diff_window_size, 'y');
+        let tmp_area = detect_common_scroll_area(l_sum_diff_by_y, l_sum_diff_by_y_smooth, diff_window_size, 'y', thres_common_diff_y1, thres_common_diff_y2);
         // console.log(tmp_area);
         if (tmp_area.v1 != -1) {
           // スクロール範囲が見つかったら上書き、見つからなければ完全一致画像として何もしない
