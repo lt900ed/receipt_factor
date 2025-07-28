@@ -523,7 +523,7 @@ div.icon--twitter::after{
 }
 #dragDropArea{
   background-color: #f4f4f4;
-  margin: 10px;
+  margin: 0;
   padding: 10px;
   border: #ddd dashed 5px;
   text-align: center;
@@ -733,13 +733,13 @@ h3{
   display: block;
   font-size: 18px;
   margin-top: 1rem;
-  margin-bottom: .5rem;
+  margin-bottom: 0;
 }
 .editormd, .markdown-body, .editormd .CodeMirror{
   font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
   width: inherit;
   margin-top: 0;
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 .markdown-body p{
   margin-top: 0;
