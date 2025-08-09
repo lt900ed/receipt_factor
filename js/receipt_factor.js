@@ -538,6 +538,7 @@ function detect_rects(img_in) {
   let only_matched = true;
   for (let i = 0; i < mv_contours_only_large.size(); i++) {
     is_close_val = cv.matchShapes(mv_contours_only_large.get(i), msk_close, cv.CONTOURS_MATCH_I3, 0);
+    // console.log('is_close_val: ', is_close_val);
     if (!only_matched) {
       cont_out.push(mv_contours_only_large.get(i));
       info_out.push({
@@ -548,7 +549,7 @@ function detect_rects(img_in) {
     } else if (is_close_val < thres_cont_close && is_close_val < min_is_close_val) {
       let tmp_rect = cv.boundingRect(mv_contours_only_large.get(i));
       if (tmp_rect.width > tmp_rect.height) {
-        // 類似度がしきい値より高いかつ現時点最高かつ横長ならリスト更新
+        // 類似度がしきい値より高いかつ現時点最高かつ閉じるボタン(仮)が横長ならリスト更新
         cont_out.shift();
         info_out.shift();
         cont_out.push(mv_contours_only_large.get(i));
@@ -561,12 +562,12 @@ function detect_rects(img_in) {
       }
     }
   };
+  // console.log(cont_out, info_out);
   if (cont_out.length == 0) {
     // 汎用連結処理に回すためレイアウトタイプ=unknownで終了
     rayout_type = 'unknown';
     // throw new Error('閉じるボタンが正常に検出出来ない画像があります。');
   } else {
-    // console.log('rect_close_area', cv.contourArea(cont_out[0]));
     let rect_close = cv.boundingRect(cont_out[0]);
     // 閉じるが横にズレていた時のため座標をセンタリングは廃止
     // rect_close.x = Math.round(img_in.cols / 2 - rect_close.width / 2);
@@ -687,6 +688,7 @@ function detect_rects(img_in) {
 
       // 最もスコアの高いレイアウトを選択、しきい値より高ければ採用
       arr_rayout_score.sort((a, b) => b.score - a.score);
+      // console.log(arr_rayout_score);
       if (arr_rayout_score[0].score > thres_match_tmpl_rayout_type) {
         rayout_type = arr_rayout_score[0].rayout_type;
       } else {
@@ -782,13 +784,14 @@ function detect_rects(img_in) {
   tmpl_hierarchy.delete();
   cont_out.forEach(function(c){c.delete()});
   l_tmpl_contours_only_large.forEach(function(c){c.delete()});
+  // console.log({'rayout_type': rayout_type, 'rects': rects});
   return {'rayout_type': rayout_type, 'rects': rects};
 }
 function get_rects(l_mat) {
   return new Promise(function(resolve){
     const n_tgt = l_mat.length;
     console.log('閉じるボタン位置取得');
-    console.log('枚数:', l_mat.length, '1枚目のheight,width:', l_mat[0].rows, l_mat[0].cols);
+    // console.log('枚数:', l_mat.length, '1枚目のheight,width:', l_mat[0].rows, l_mat[0].cols);
     let l_rects = [];
     let tmp_rects = {};
     for (let i = 0; i < l_mat.length; i++) {
@@ -796,6 +799,7 @@ function get_rects(l_mat) {
       tmp_rects = detect_rects(l_mat[i]);
       l_rects.push(tmp_rects);
     }
+    console.log(l_rects);
     resolve(l_rects);
   })
 }
@@ -803,7 +807,7 @@ function get_unknown_rects(l_mat, l_rects) {
   return new Promise(function(resolve){
     console.log('レイアウト不明画像について汎用処理でスクロール範囲特定');
     let l_index_tgt = [...Array(l_rects.length).keys()].filter((e) => l_rects[e].rayout_type == 'unknown')
-    console.log(l_index_tgt);
+    // console.log(l_index_tgt);
     // 画像中央の16:9部分だけ切り出しは廃止
     // let tmp_w = Math.min(l_mat[l_index_tgt[0]].cols, Math.floor(l_mat[l_index_tgt[0]].rows / 16 * 9));
     if (l_index_tgt.length == 1) {
@@ -833,31 +837,9 @@ function get_unknown_rects(l_mat, l_rects) {
         cv.cvtColor(img_i_gray, img_i_gray, cv.COLOR_RGBA2GRAY, 0);
         cv.absdiff(img_0_gray, img_i_gray, tmp_diff);
 
-        // 一列毎に差異を合計
-        let l_sum_diff_by_x = [];
-        for (let i = 0; i < tmp_diff.cols; i++) {
-          tmp_sum = 0;
-          // 画像全体を検証
-          for (let j = 0; j < tmp_diff.rows; j++) {
-            // ucharAtは1px毎に0~255で出力
-            tmp_sum += tmp_diff.ucharAt(j, i);
-          }
-          // heightで割って標準化
-          l_sum_diff_by_x.push(tmp_sum / tmp_diff.rows);
-        }
-        // 結果の平滑化
-        let l_sum_diff_by_x_smooth = smoothing_list(l_sum_diff_by_x, diff_window_size);
-        // console.log(l_sum_diff_by_x.join('\n'));
-        // console.log(l_sum_diff_by_x.map((e, i) => e + '\t' + l_sum_diff_by_x_smooth[Math.min(i, l_sum_diff_by_x_smooth.length - 1)]).join('\n'));
-        // console.log(l_sum_diff_by_x_smooth.join('\n'));
-        // 平滑化した結果を参考に外れ値を除外しつつスクロール範囲をぴったり検索
-        let tmp_area_x = detect_common_scroll_area(l_sum_diff_by_x, l_sum_diff_by_x_smooth, diff_window_size, 'x', thres_common_diff_y1, thres_common_diff_y2);
-        // console.log(tmp_area);
-        if (tmp_area_x.v1 != -1) {
-          // スクロール範囲が見つかったら上書き、見つからなければ完全一致画像として何もしない
-          tmp_x1 = Math.min(tmp_x1, tmp_area_x.v1);
-          tmp_x2 = Math.max(tmp_x2, tmp_area_x.v2);
-        }
+        // trim_by_platform()でx軸方向はトリミング済だからここではトリミングしない
+        tmp_x1 = 0;
+        tmp_x2 = tmp_diff.cols;
 
         // 一行毎に差異を合計
         let l_sum_diff_by_y = [];
@@ -885,7 +867,7 @@ function get_unknown_rects(l_mat, l_rects) {
           tmp_y2 = Math.max(tmp_y2, tmp_area.v2);
         }
       })
-      console.log(tmp_x1, tmp_x2, tmp_y1, tmp_y2);
+      // console.log(tmp_x1, tmp_x2, tmp_y1, tmp_y2);
 
       // 全部のunknown画像で一番広いスクロール範囲を採用して各画像のrectsを生成
       l_index_tgt.forEach(function(i){
