@@ -95,7 +95,7 @@ function add_rect_prop(rect_prop, rect_prop_dynamic, rayout_type) {
       dict_out[key] = rect_prop_dynamic[rayout_type][key];
     });
   }
-  dict_out['bottom_row'] = [rect_prop['scroll'][0], rect_prop['scroll'][1] + rect_prop['scroll'][3] - 80, rect_prop['scroll'][2], 80];
+  dict_out['bottom_row'] = [rect_prop['scroll'][0], rect_prop['scroll'][1] + rect_prop['scroll'][3] - 120, rect_prop['scroll'][2], 120];
   dict_out['bottom_row_higher'] = [dict_out['bottom_row'][0], dict_out['bottom_row'][1] - 60, dict_out['bottom_row'][2], dict_out['bottom_row'][3] + 60];
   dict_out['scroll_with_header'] = [dict_out['whole'][0], dict_out['whole'][1], dict_out['whole'][2], dict_out['scroll'][1] + dict_out['scroll'][3] - dict_out['whole'][1]];
   dict_out['scroll_full_width'] = [dict_out['whole'][0], dict_out['scroll'][1], dict_out['whole'][2], dict_out['scroll'][3]];
@@ -749,11 +749,12 @@ function detect_rects(img_in) {
         // console.log(rects);
         // console.log(rects.whole);
         if (!(
-          0 <= rects.whole.x &&
-          0 <= rects.whole.y &&
-          rects.whole.x + rects.whole.width <= img_in.cols &&
-          rects.whole.y + rects.whole.height <= img_in.rows)) {
-        throw new Error('ウマ娘詳細エリアが正しく検出出来ない画像があります。');
+            0 <= rects.whole.x &&
+            0 <= rects.whole.y &&
+            rects.whole.x + rects.whole.width <= img_in.cols &&
+            rects.whole.y + rects.whole.height <= img_in.rows)) {
+          rayout_type = 'unknown';
+          // throw new Error('ウマ娘詳細エリアが正しく検出出来ない画像があります。');
         }
         // 輪郭描画
         // let dst = cv.Mat.zeros(img_gray.rows, img_gray.cols, cv.CV_8UC3);
