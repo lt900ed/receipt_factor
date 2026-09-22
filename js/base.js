@@ -590,6 +590,23 @@ function ShowManualMenu() {
   document.getElementById('manualAdjustment').classList.remove('hidden');
   document.getElementById('overview').classList.add('hidden');
 }
+function ReplacementImage(btn) {
+  const replacementArea = btn.parentElement;
+  const firstImage = replacementArea.previousElementSibling;
+  const secondImage = replacementArea.nextElementSibling;
+  if (!firstImage || !secondImage || firstImage.tagName !== 'IMG' || secondImage.tagName !== 'IMG') {
+    return;
+  }
+  replacementArea.before(secondImage);
+  replacementArea.after(firstImage);
+}
+function ToggleSize(){
+  const manualPreviewArea = document.getElementById('manualPreviewArea');
+  if (!manualPreviewArea) {
+    return;
+  }
+  manualPreviewArea.classList.toggle('full-size');
+};
 window.onload = function () {
   let fileArea = document.getElementById('dragDropArea');
   let fileInput = document.getElementById('fileInput');
