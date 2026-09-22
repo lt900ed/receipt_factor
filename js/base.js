@@ -324,6 +324,67 @@ function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, eles_scr
     console.log('未実装');
   }
 };
+function outputPartsList2ManualCanvas(imgs, l_group, l_relative_height, manualPreviewArea, show_header) {
+  const n_group = Math.max(...l_group) + 1;
+  [...Array(n_group).keys()].forEach(function(current_group){
+    // グループ毎に列要素を用意
+    let tmpColumnElement = document.createElement('div');
+    tmpColumnElement.classList.add('manualPreviewColumn');
+
+    if (show_header) {
+      // ヘッダー表示ならヘッダー部追加
+      let img = imgs.filter((d, i) => l_group[i] == current_group && l_relative_height[i] == 0)[0];
+      // ヘッダー部分をパーツ毎に存在していたら描画
+      ['header', 'basic_info', 'tab'].forEach(function(tmp_part) {
+        if (tmp_part in img) {
+          let tmp_canvas = document.createElement('canvas');
+          tmp_canvas.setAttribute('class', 'manualPreviewCanvas');
+          tmp_canvas.setAttribute('data-part_name', tmp_part);
+          cv.imshow(tmp_canvas, img[tmp_part]);
+          tmpColumnElement.appendChild(tmp_canvas);
+        }
+      })
+    }
+
+    // スクロール部分を上から順に描画
+    let l_index_by_rh = [];
+    l_index_by_rh = [...Array(imgs.length).keys()].filter((d, i) => l_group[i] == current_group).sort((first, second) => l_relative_height[first] - l_relative_height[second]);
+    l_index_by_rh.forEach(function(v, i) {
+      // 2枚目以降なら入れ替えボタンを追加
+      if (i >= 1) {
+        let tmpBtnArea = document.createElement('div');
+        tmpBtnArea.setAttribute('class', 'ReplacementBtnArea');
+        let tmpBtn = document.createElement('button');
+        tmpBtn.setAttribute('class', 'btn material-symbols-outlined');
+        tmpBtn.setAttribute('value', '↑↓');
+        tmpBtn.setAttribute('onclick', 'ReplacementImage(this);return false;');
+        tmpBtn.textContent = 'swap_vert';
+        tmpBtnArea.appendChild(tmpBtn);
+        tmpColumnElement.appendChild(tmpBtnArea);
+      }
+
+      let img = imgs[v];
+      // スクロール部分を描画
+      let tmp_canvas = document.createElement('canvas');
+      tmp_canvas.setAttribute('class', 'manualPreviewCanvas');
+      tmp_canvas.setAttribute('data-part_name', 'scroll');
+      cv.imshow(tmp_canvas, img.scroll);
+      tmpColumnElement.appendChild(tmp_canvas);
+      // 最後の画像で汎用レイアウトならフッターも描画
+      console.log(i, v, img.rayout_type);
+      if (i == l_index_by_rh.length - 1 && ['common_header_scroll', 'common_scroll_only'].includes(img.rayout_type)) {
+        let tmp_canvas = document.createElement('canvas');
+        tmp_canvas.setAttribute('class', 'manualPreviewCanvas');
+        tmp_canvas.setAttribute('data-part_name', 'footer');
+        cv.imshow(tmp_canvas, img.footer);
+        tmpColumnElement.appendChild(tmp_canvas);
+      }
+    })
+
+    // マニュアル調整エリアに追加
+    manualPreviewArea.appendChild(tmpColumnElement);
+  })
+};
 function manageBtnStatus(action) {
   var btnSubmit = document.getElementById('btnSubmit');
   var btnReset = document.getElementById('btnReset');
@@ -475,7 +536,8 @@ async function generatePhoto() {
       document.getElementById('overviewOCRResult').classList.add('hidden');
     }
     outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, document.getElementsByClassName('canvasScroll'), tmpCanvasElement, document.getElementById('showHeader').checked);
-
+    // マニュアル調整エリアに出力
+    outputPartsList2ManualCanvas(imgs, l_group, l_relative_height, document.getElementById('manualPreviewArea'), document.getElementById('showHeader').checked);
     //img要素に出力
     let outputImage = document.getElementById('outputImage');
     outputImage.src = tmpCanvasElement.toDataURL('image/png');
@@ -594,7 +656,7 @@ function ReplacementImage(btn) {
   const replacementArea = btn.parentElement;
   const firstImage = replacementArea.previousElementSibling;
   const secondImage = replacementArea.nextElementSibling;
-  if (!firstImage || !secondImage || firstImage.tagName !== 'IMG' || secondImage.tagName !== 'IMG') {
+  if (!firstImage || !secondImage || firstImage.tagName !== 'CANVAS' || secondImage.tagName !== 'CANVAS') {
     return;
   }
   replacementArea.before(secondImage);

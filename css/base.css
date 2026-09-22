@@ -583,6 +583,11 @@ div.icon--twitter::after{
   width: 100%;
   height: auto;
 }
+.manualPreviewCanvas{
+  display: block;
+  width: 100%;
+  height: auto;
+}
 #manualPreviewArea.full-size{
   overflow-x: auto;
 }
