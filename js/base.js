@@ -586,6 +586,10 @@ function SaveToClipBoard(canvas_src) {
     }
   });
 }
+function ShowManualMenu() {
+  document.getElementById('manualAdjustment').classList.remove('hidden');
+  document.getElementById('overview').classList.add('hidden');
+}
 window.onload = function () {
   let fileArea = document.getElementById('dragDropArea');
   let fileInput = document.getElementById('fileInput');

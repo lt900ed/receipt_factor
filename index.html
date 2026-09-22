@@ -131,10 +131,37 @@
           <button id="btnSaveJPG" class="btn weak" value="JPGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'jpg');return false;">JPGで保存</button>
           <button id="btnSavePNG" class="btn weak" value="PNGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'png');return false;">PNGで保存</button>
           <button id="btnSaveClipBoard" class="btn weak" value="📋にコピー" onclick="SaveToClipBoard(document.getElementById('canvasOutput'));return false;">📋にコピー</button>
+          <button id="btnRetryManual" class="btn alert" value="手動で調整" onclick="ShowManualMenu();return false;">手動で調整</button>
         </div>
         <p id="outputAreaText" class="overviewTitle">ここに結果が表示されます</p>
         <p id="toggleSizeText" class="overviewTitle hidden">画像タップで表示サイズ切り替え</p>
         <img id="outputImage" class="hidden" src="">
+        <div id="overviewOCRResult" class="hidden">
+          <div class="editormd-preview-container">
+            <p class="overviewSubTitle">・検出精度向上のご協力のお願い</p>
+            <p>スキルアイコンの表示機能の精度を向上させるため因子名の誤検出パターンを収集しています。<br>
+            下のテキスト欄に表示されている検出結果をコピーし<a href="https://forms.gle/wFntwkAQKgbsniZH9" target="_blank" rel="noopener">専用フォーム</a>にお送り下さい。<br>
+            より多くのレシート因子に使えるようになるためご協力お願い致します。</p>
+          </div>
+          <textarea id="outputOCRResult" cols="50" rows="3" onclick="this.select()"></textarea>
+        </div>
+      </section>
+      <section id="manualAdjustment" class="hidden">
+        <div id="manualBtnArea" class="buttonArea">
+          <button id="btnRegenerateByManual" class="btn" value="この並びで再作成" onclick="RegenerateByManual();return false;">この並びで再作成</button>
+          <button id="btnResetLineup" class="btn weak" value="並び順をリセット" onclick="ResetLineup();return false;">並び順をリセット</button>
+        </div>
+        <p class="overviewTitle">↑↓ボタンで並び替え、終わったら「この並びで再作成」をタップ</p>
+        <div id="manualPreviewArea" class="hidden">
+          <div class="manualPreviewColumn">
+            <img class="manualPreviewImage" src="">
+            <div class="ReplacementBtnArea">
+              <button class="btn manualBtn" value="↑↓" onclick="ReplacementImage(this);return false;">↑↓</button>
+            </div>
+            <img class="manualPreviewImage" src="">
+          </div>
+        </div>
+        <img class="hidden" src="">
         <div id="overviewOCRResult" class="hidden">
           <div class="editormd-preview-container">
             <p class="overviewSubTitle">・検出精度向上のご協力のお願い</p>

@@ -227,6 +227,13 @@ header{
   display: inline-block;
   box-sizing: border-box;
 }
+.btn.alert{
+  background-color: #fff;
+  border-color: #ff4040;
+  color: #ff4040;
+  display: inline-block;
+  box-sizing: border-box;
+}
 .btn.disable{
   background-color: #fff;
   border-color: #aaa;
@@ -561,7 +568,7 @@ div.icon--twitter::after{
 .buttonArea{
   text-align: center;
 }
-#overview{
+#overview, #manualAdjustment{
   text-align: center;
 }
 .overviewTitle{
