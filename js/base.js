@@ -241,7 +241,7 @@ function outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, 
       // console.log(i, current_group, w_one_col, (l_h_header[current_group] + l_relative_height[v]) * tmp_scale, img.scroll.cols * tmp_scale, img.scroll.rows * tmp_scale);
       drawMat2Canvas(img.scroll, canvas_element, 0, l_relative_height[v] * tmp_scale, img.scroll.cols * tmp_scale, img.scroll.rows * tmp_scale);
       // 汎用レイアウトならフッターも描画
-      console.log(i, v, img.rayout_type);
+      // console.log(i, v, img.rayout_type);
       if (i == l_index_by_rh.length - 1 && ['common_header_scroll', 'common_scroll_only'].includes(img.rayout_type)) {
         drawMat2Canvas(img.footer, canvas_element, 0, (l_relative_height[v] + img.scroll.rows) * tmp_scale, img.footer.cols * tmp_scale, img.footer.rows * tmp_scale);
       }
@@ -325,6 +325,9 @@ function outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, eles_scr
   }
 };
 function outputPartsList2ManualCanvas(imgs, l_group, l_relative_height, manualPreviewArea, show_header) {
+  // 出力先をリセット
+  manualPreviewArea.replaceChildren();
+
   const n_group = Math.max(...l_group) + 1;
   [...Array(n_group).keys()].forEach(function(current_group){
     // グループ毎に列要素を用意
@@ -340,6 +343,7 @@ function outputPartsList2ManualCanvas(imgs, l_group, l_relative_height, manualPr
           let tmp_canvas = document.createElement('canvas');
           tmp_canvas.setAttribute('class', 'manualPreviewCanvas');
           tmp_canvas.setAttribute('data-part_name', tmp_part);
+          tmp_canvas.setAttribute('onclick', 'ToggleSize();return false;');
           cv.imshow(tmp_canvas, img[tmp_part]);
           tmpColumnElement.appendChild(tmp_canvas);
         }
@@ -368,14 +372,16 @@ function outputPartsList2ManualCanvas(imgs, l_group, l_relative_height, manualPr
       let tmp_canvas = document.createElement('canvas');
       tmp_canvas.setAttribute('class', 'manualPreviewCanvas');
       tmp_canvas.setAttribute('data-part_name', 'scroll');
+      tmp_canvas.setAttribute('onclick', 'ToggleSize();return false;');
       cv.imshow(tmp_canvas, img.scroll);
       tmpColumnElement.appendChild(tmp_canvas);
       // 最後の画像で汎用レイアウトならフッターも描画
-      console.log(i, v, img.rayout_type);
+      // console.log(i, v, img.rayout_type);
       if (i == l_index_by_rh.length - 1 && ['common_header_scroll', 'common_scroll_only'].includes(img.rayout_type)) {
         let tmp_canvas = document.createElement('canvas');
         tmp_canvas.setAttribute('class', 'manualPreviewCanvas');
         tmp_canvas.setAttribute('data-part_name', 'footer');
+        tmp_canvas.setAttribute('onclick', 'ToggleSize();return false;');
         cv.imshow(tmp_canvas, img.footer);
         tmpColumnElement.appendChild(tmp_canvas);
       }
@@ -505,13 +511,13 @@ async function generatePhoto() {
     if (is_show_skill_icon) {changePercentage(50)} else {changePercentage(90)};
     await repaint();
     console.log('画像出力');
-    let tmpCanvasElement = document.getElementById('canvasOutput');
-    if (!tmpCanvasElement) {
+    let tmpCanvasOutput = document.getElementById('canvasOutput');
+    if (!tmpCanvasOutput) {
       // キャンバスがなかったら生成
-      tmpCanvasElement = document.createElement('canvas');
-      tmpCanvasElement.setAttribute('id', 'canvasOutput');
-      tmpCanvasElement.classList.add('hidden');
-      document.getElementById('overview').appendChild(tmpCanvasElement);
+      tmpCanvasOutput = document.createElement('canvas');
+      tmpCanvasOutput.setAttribute('id', 'canvasOutput');
+      tmpCanvasOutput.classList.add('hidden');
+      document.getElementById('overview').appendChild(tmpCanvasOutput);
     }
     outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, document.getElementById('tmpCanvasScrolls'), 'canvasScroll');
     if (document.getElementById('showSkillIcon').checked) {
@@ -535,13 +541,14 @@ async function generatePhoto() {
     } else {
       document.getElementById('overviewOCRResult').classList.add('hidden');
     }
-    outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, document.getElementsByClassName('canvasScroll'), tmpCanvasElement, document.getElementById('showHeader').checked);
+    outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, document.getElementsByClassName('canvasScroll'), tmpCanvasOutput, document.getElementById('showHeader').checked);
     // マニュアル調整エリアに出力
     outputPartsList2ManualCanvas(imgs, l_group, l_relative_height, document.getElementById('manualPreviewArea'), document.getElementById('showHeader').checked);
     //img要素に出力
     let outputImage = document.getElementById('outputImage');
-    outputImage.src = tmpCanvasElement.toDataURL('image/png');
+    outputImage.src = tmpCanvasOutput.toDataURL('image/png');
     outputImage.classList.remove('hidden');
+    ResetDisplayResultMenu();
     // ローディング解除
     changePercentage(100);
     // 保存ボタンを出してスクロール
@@ -565,6 +572,109 @@ async function generatePhoto() {
     while(document.getElementById('tmpCanvasScrolls').firstChild){
       node.removeChild(node.firstChild);
     }
+  } catch(e) {
+    console.log(e);
+    raiseErrMsg(e.message);
+    document.getElementById('loading').classList.add('hidden');
+  }
+};
+async function generatePhotoByManual() {
+  try {
+    // ローディング開始
+    changePercentage(0);
+    await repaint();
+    let manualPreviewArea = document.getElementById('manualPreviewArea');
+    let imgs = [];
+    let l_part_name = [];
+    let l_group = [];
+    let l_relative_height = [];
+    let n_group = manualPreviewArea.children.length;
+    for (let i = 0; i < n_group; i++) {
+      let tmpColumnElement = manualPreviewArea.children[i];
+      let tmpCanvasElements = tmpColumnElement.getElementsByClassName('manualPreviewCanvas');
+      let tmp_obj = {};
+      let tmp_imgs = [];
+      let tmp_l_group = [];
+      let tmp_l_relative_height = [];
+      for (let j = 0; j < tmpCanvasElements.length; j++) {
+        let tmpMat = cv.imread(tmpCanvasElements[j]);
+        let tmp_part_name = tmpCanvasElements[j].getAttribute('data-part_name');
+        cv.cvtColor(tmpMat, tmpMat, cv.COLOR_RGBA2RGB, 0);
+        if (tmp_part_name == 'scroll') {
+          //スクロール部分の時は格納後初期化
+          tmp_obj.scroll = tmpMat.clone();
+          tmp_obj.scroll_full_width = tmpMat.clone();
+          tmp_imgs.push(tmp_obj);
+          tmp_l_group.push(i);
+          tmp_obj = {};
+        } else if (tmp_part_name == 'footer') {
+          // フッター部分は最後の画像に格納
+          tmp_imgs[tmp_imgs.length - 1][tmp_part_name] = tmpMat.clone();
+        } else {
+          // ヘッダー部分は格納して初期化なし
+          tmp_obj[tmp_part_name] = tmpMat.clone();
+        }
+        l_part_name.push(tmp_part_name);
+        tmpMat.delete();
+        changePercentage(90 / n_group * (i + (1 / (tmpCanvasElements.length + 1)) * (j + 1)));
+        await repaint();
+      }
+      tmp_imgs.forEach(function(d, i) {
+        // 相対座標の計算
+        // 先頭要素の相対座標は0にする
+        if (i == 0) {
+          tmp_l_relative_height.push(0);
+        } else {
+          //スクロール部分は相対座標を計算
+          tmp_l_relative_height.push(match_pair(tmp_imgs[i - 1].scroll, d.scroll) + tmp_l_relative_height[i - 1]);
+        }
+      });
+      imgs.push(...tmp_imgs);
+      l_group.push(...tmp_l_group);
+      l_relative_height.push(...tmp_l_relative_height);
+      changePercentage(90 / n_group * (i + 1));
+      await repaint();
+    }
+    // console.log(imgs, l_group, l_relative_height);
+    // キャンバスに出力
+    outputPartsList2Scroll2CanvasByGroup(imgs, l_group, l_relative_height, document.getElementById('tmpCanvasScrolls'), 'canvasScroll');
+    let tmpCanvasOutput = document.getElementById('canvasOutput');
+    if (!tmpCanvasOutput) {
+      // キャンバスがなかったら生成
+      tmpCanvasOutput = document.createElement('canvas');
+      tmpCanvasOutput.setAttribute('id', 'canvasOutput');
+      tmpCanvasOutput.classList.add('hidden');
+      document.getElementById('overview').appendChild(tmpCanvasOutput);
+    }
+    outputScrollCanvas2OneCanvas(imgs, l_group, l_relative_height, document.getElementsByClassName('canvasScroll'), tmpCanvasOutput, document.getElementById('showHeader').checked);
+    // マニュアル調整エリアに出力
+    outputPartsList2ManualCanvas(imgs, l_group, l_relative_height, document.getElementById('manualPreviewArea'), document.getElementById('showHeader').checked);
+    //img要素に出力
+    let outputImage = document.getElementById('outputImage');
+    outputImage.src = tmpCanvasOutput.toDataURL('image/png');
+    outputImage.classList.remove('hidden');
+    // ローディング解除
+    changePercentage(100);
+    // 保存ボタンを出してスクロール
+    document.getElementById('SaveBtnArea').classList.remove('hidden');
+    document.getElementById('outputAreaText').classList.add('hidden');
+    document.getElementById('toggleSizeText').classList.remove('hidden');
+    document.getElementById('overview').scrollIntoView({behavior : 'smooth', block : 'start'});
+    // メモリ解放
+    imgs.forEach(function(i){
+      load_parts.forEach(function(p){
+        if (p in i) {
+          i[p].delete();
+        }
+      })
+    });
+    // スクロール部Canvas削除
+    const node = document.getElementById('tmpCanvasScrolls');
+    while(document.getElementById('tmpCanvasScrolls').firstChild){
+      node.removeChild(node.firstChild);
+    }
+    // 出力表示とマニュアル調整欄切り替え
+    ToggleManualMenu();
   } catch(e) {
     console.log(e);
     raiseErrMsg(e.message);
@@ -648,9 +758,13 @@ function SaveToClipBoard(canvas_src) {
     }
   });
 }
-function ShowManualMenu() {
-  document.getElementById('manualAdjustment').classList.remove('hidden');
-  document.getElementById('overview').classList.add('hidden');
+function ResetDisplayResultMenu() {
+  document.getElementById('manualAdjustment').classList.add('hidden');
+  document.getElementById('overview').classList.remove('hidden');
+}
+function ToggleManualMenu() {
+  document.getElementById('manualAdjustment').classList.toggle('hidden');
+  document.getElementById('overview').classList.toggle('hidden');
 }
 function ReplacementImage(btn) {
   const replacementArea = btn.parentElement;

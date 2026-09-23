@@ -112,6 +112,7 @@ const thres_gray = 215;
 const thres_cont_close = 0.1;
 const thres_match_tmpl = 0.8;
 const thres_match_tmpl_basic_info = 0.85;
+const thres_match_tmpl_manual = 0.95;
 const thres_match_tmpl_higher = 0.55;
 const thres_match_tmpl_rayout_type = 0.6;
 const thres_match_tmpl_disc = 0.1;
@@ -1182,7 +1183,22 @@ function match_one_line(imgs, l_group, arr_val, arr_loc, i) {
     resolve();
   })
 }
-
+function match_pair(img_tmpl, img_tgt) {
+  // マニュアル調整用、tgtが上、tmplが下の並び順で固定
+  // tmplはトリミングされてない前提
+  let out = 0;
+  //tmplの下1/8をトリミング
+  let tmp_img_tmpl = img_tmpl.roi(new cv.Rect(0, Math.floor(img_tmpl.rows * 7 / 8), img_tmpl.cols, Math.floor(img_tmpl.rows / 8))).clone();
+  // 重なり判定
+  let tmp_res = match_tmpl_min_max_loc(img_tgt, tmp_img_tmpl);
+  if (thres_match_tmpl_manual < tmp_res.maxVal) {
+    out = img_tgt.rows - tmp_img_tmpl.rows - tmp_res.maxLoc.y;
+  } else {
+    // 閾値以下なら、tgtの高さをそのまま出力
+    out = img_tgt.rows;
+  }
+  return out;
+};
 // 2024/1/10 未使用
 async function match_cross(imgs, l_group) {
     console.log('グループ内でテンプレートマッチ')

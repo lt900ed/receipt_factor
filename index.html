@@ -68,9 +68,9 @@
   <div class="wrapper">
     <article id="detail">
       <section id="infomation">
-        <h3>お知らせ(2025/7/28)</h3>
+        <h3>お知らせ(2026/9/23)</h3>
         <div class="markdown-body editormd-preview-container" id="infomation_text">
-          <p>Steam版のスクショに対応しました。まだ不安定なのでうまく繋がらなかった時は、<a href="https://x.com/lt900ed/status/1949596234991501523" target="_blank" rel="noopener">こちらのポスト</a>にリプする形で使ったスクショを報告してもらえると助かります。<p>
+          <p>手動で並び順を指定する機能を追加しました。連結結果がおかしい時は、「手動で調整」ボタンを押して並び順を指定して下さい。<p>
         </div>
       </section>
       <section id="top">
@@ -133,7 +133,7 @@
           <button id="btnSaveJPG" class="btn weak" value="JPGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'jpg');return false;">JPGで保存</button>
           <button id="btnSavePNG" class="btn weak" value="PNGで保存" onclick="SaveOriginal(document.getElementById('canvasOutput'), 'png');return false;">PNGで保存</button>
           <button id="btnSaveClipBoard" class="btn weak" value="📋にコピー" onclick="SaveToClipBoard(document.getElementById('canvasOutput'));return false;">📋にコピー</button>
-          <button id="btnRetryManual" class="btn alert" value="手動で調整" onclick="ShowManualMenu();return false;">手動で調整</button>
+          <button id="btnRetryManual" class="btn alert" value="手動で調整" onclick="ToggleManualMenu();return false;">手動で調整</button>
         </div>
         <p id="outputAreaText" class="overviewTitle">ここに結果が表示されます</p>
         <p id="toggleSizeText" class="overviewTitle hidden">画像タップで表示サイズ切り替え</p>
@@ -148,13 +148,13 @@
           <textarea id="outputOCRResult" cols="50" rows="3" onclick="this.select()"></textarea>
         </div>
       </section>
-      <section id="manualAdjustment" class="">
+      <section id="manualAdjustment" class="hidden">
         <div id="manualBtnArea" class="buttonArea">
-          <button id="btnRegenerateByManual" class="btn" value="この並びで再作成" onclick="RegenerateByManual();return false;">この並びで再作成</button>
-          <button id="btnResetLineup" class="btn weak" value="並び順をリセット" onclick="ResetLineup();return false;">並び順をリセット</button>
-          <button id="btnToggleSize" class="btn weak" value="表示サイズ切り替え" onclick="ToggleSize();return false;">表示サイズ切り替え</button>
+          <button id="btnRegenerateByManual" class="btn" value="この並びで再作成" onclick="generatePhotoByManual();return false;">この並びで再作成</button>
+          <!-- <button id="btnResetLineup" class="btn weak" value="並び順をリセット" onclick="ResetLineup();return false;">並び順をリセット</button> -->
+          <!-- <button id="btnToggleSize" class="btn weak" value="表示サイズ切り替え" onclick="ToggleSize();return false;">表示サイズ切り替え</button> -->
         </div>
-        <p class="overviewTitle">↑↓ボタンで並び替え、終わったら「この並びで再作成」をタップ</p>
+        <p class="overviewTitle">↑↓ボタンで並び替え、終わったら「この並びで再作成」をタップ<br>画像タップで表示サイズ切り替え</p>
         <div id="manualPreviewArea" class="">
           <!-- <div class="manualPreviewColumn">
             <img class="manualPreviewImage" src="/img/ss/01501.png">
@@ -266,6 +266,7 @@
             Ver3.31：Steam版暫定対応<br>
             Ver3.32：過度に左右がトリミングされる場合がある問題修正<br>
             Ver3.33：汎用連結処理が上手く行かない場合がある問題修正<br>
+            Ver4.0：手動並び替え機能追加<br>
           </p>
         </div>
       </section>
